@@ -4,9 +4,12 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
+/**
+ * Initializes the React application by creating a root and rendering the App component.
+ */
+const rootElement = document.getElementById('root') as HTMLElement;
+const root = ReactDOM.createRoot(rootElement);
+
 root.render(
   <React.StrictMode>
     <App />
