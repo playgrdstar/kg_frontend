@@ -1,6 +1,12 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef, useState } from "react";
 import CytoscapeComponent from "react-cytoscapejs";
 import { Core } from "cytoscape";
+import { 
+    Box, 
+    Slider, 
+    Typography, 
+    Stack 
+} from "@mui/material";
 import { KnowledgeGraph, KGNode, KGEdge } from "../types/api.types";
 import { cosineSimilarity } from "../utils/math";
 
@@ -14,15 +20,16 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
     onNodeClick,
 }) => {
     const cyRef = useRef<Core | null>(null);
+    const [networkThreshold, setNetworkThreshold] = useState<number>(0.8);
+    const [textThreshold, setTextThreshold] = useState<number>(0.8);
 
-    // Function to calculate similar nodes based on embeddings
-    const getSimilarNodes = (node: KGNode, nodes: KGNode[], threshold: number = 0.8) => {
+    // Update getSimilarNodes to use separate thresholds
+    const getSimilarNodes = (node: KGNode, nodes: KGNode[]) => {
         if (!node.network_embedding || !node.text_embedding) return new Set<string>();
         
         return new Set(nodes.filter(n => {
             if (!n.network_embedding || !n.text_embedding) return false;
             
-            // Type assertion since we've already checked for null
             const networkSimilarity = cosineSimilarity(
                 node.network_embedding as number[],
                 n.network_embedding as number[]
@@ -33,7 +40,8 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             );
             
             return n.id !== node.id && 
-                (networkSimilarity > threshold || textSimilarity > threshold);
+                (networkSimilarity > networkThreshold || 
+                 textSimilarity > textThreshold);
         }).map(n => n.id));
     };
 
@@ -57,8 +65,12 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             .map(n => n.id));
     };
 
-    // Convert graph data to Cytoscape elements
+    // Convert graph data to Cytoscape elements with validation
     const getElements = () => {
+        // Create a Set of valid node IDs for quick lookup
+        const validNodeIds = new Set(data.nodes.map(node => node.id));
+
+        // Filter and map nodes
         const nodes = data.nodes.map(node => ({
             data: {
                 id: node.id,
@@ -68,7 +80,18 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             }
         }));
 
-        const edges = data.edges.map(edge => ({
+        // Filter and map edges, excluding those with invalid source/target
+        const edges = data.edges.filter(edge => {
+            const isValid = validNodeIds.has(edge.source) && validNodeIds.has(edge.target);
+            if (!isValid) {
+                console.warn(
+                    `Skipping invalid edge: ${edge.source} -> ${edge.target}`,
+                    `Label: ${edge.label}`,
+                    `Reason: ${!validNodeIds.has(edge.source) ? 'Invalid source' : 'Invalid target'}`
+                );
+            }
+            return isValid;
+        }).map(edge => ({
             data: {
                 id: `${edge.source}-${edge.target}`,
                 source: edge.source,
@@ -196,14 +219,147 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         });
     };
 
-    return (
-        <CytoscapeComponent
-            elements={getElements()}
-            style={{ width: "100%", height: "100%" }}
-            cy={handleCyInit}
-            layout={{ name: "cose", animate: false }}
-        />
-    );
+    // Add error boundary for Cytoscape component
+    const handleError = (error: any) => {
+        console.error("Error in graph visualization:", error);
+        // You could set an error state here if you want to show an error message to the user
+    };
+
+    // Validate graph data before rendering
+    const validateGraphData = () => {
+        if (!data.nodes || !Array.isArray(data.nodes)) {
+            throw new Error("Invalid nodes data");
+        }
+        if (!data.edges || !Array.isArray(data.edges)) {
+            throw new Error("Invalid edges data");
+        }
+        
+        // Check for duplicate node IDs
+        const nodeIds = new Set<string>();
+        data.nodes.forEach(node => {
+            if (nodeIds.has(node.id)) {
+                console.warn(`Duplicate node ID found: ${node.id}`);
+            }
+            nodeIds.add(node.id);
+        });
+    };
+
+    // Wrap the render in try-catch
+    try {
+        validateGraphData();
+        
+        return (
+            <Box>
+                <Stack spacing={2} sx={{ mt: 2, mb: 2, ml: 4, mr: 4 }}>
+                    <Box>
+                        <Typography variant="subtitle2">
+                            Network Similarity: {networkThreshold.toFixed(2)}
+                        </Typography>
+                        <Slider
+                            value={networkThreshold}
+                            onChange={(_, value) => {
+                                setNetworkThreshold(value as number);
+                                // Reapply highlighting if a node is selected
+                                const selectedNode = cyRef.current?.nodes('.selected').first();
+                                if (selectedNode) {
+                                    handleNodeSelection(selectedNode.id());
+                                }
+                            }}
+                            min={0}
+                            max={1}
+                            step={0.05}
+                            marks={[
+                                { value: 0, label: '0' },
+                                { value: 0.5, label: '0.5' },
+                                { value: 1, label: '1' }
+                            ]}
+                            sx={{
+                                width: "100%",
+                                '& .MuiSlider-thumb': {
+                                    backgroundColor: 'gray',
+                                },
+                                '& .MuiSlider-track': {
+                                    backgroundColor: 'gray',
+                                },
+                                '& .MuiSlider-rail': {
+                                    backgroundColor: 'gray',
+                                }
+                            }}
+                        />
+                    </Box>
+                    <Box>
+                        <Typography variant="subtitle2">
+                            Text Similarity: {textThreshold.toFixed(2)}
+                        </Typography>
+                        <Slider
+                            value={textThreshold}
+                            onChange={(_, value) => {
+                                setTextThreshold(value as number);
+                                // Reapply highlighting if a node is selected
+                                const selectedNode = cyRef.current?.nodes('.selected').first();
+                                if (selectedNode) {
+                                    handleNodeSelection(selectedNode.id());
+                                }
+                            }}
+                            min={0}
+                            max={1}
+                            step={0.05}
+                            marks={[
+                                { value: 0, label: '0' },
+                                { value: 0.5, label: '0.5' },
+                                { value: 1, label: '1' }
+                            ]}
+                            sx={{
+                                width: "100%",
+                                '& .MuiSlider-thumb': {
+                                    backgroundColor: 'gray',
+                                },
+                                '& .MuiSlider-track': {
+                                    backgroundColor: 'gray',
+                                },
+                                '& .MuiSlider-rail': {
+                                    backgroundColor: 'gray',
+                                }
+                            }}
+                        />
+                    </Box>
+                </Stack>
+
+                <Box sx={{ 
+                    border: "1px solid #ddd",
+                    borderRadius: "8px",
+                    overflow: "hidden",
+                    height: "600px",
+                    position: "relative"
+                }}>
+                    <CytoscapeComponent
+                        elements={getElements()}
+                        style={{ width: "100%", height: "100%" }}
+                        cy={handleCyInit}
+                        layout={{ name: "cose", animate: false }}
+                    />
+                </Box>
+            </Box>
+        );
+    } catch (error) {
+        console.error("Failed to render graph:", error);
+        return (
+            <Box sx={{ 
+                p: 3, 
+                border: "1px solid #ff0000", 
+                borderRadius: "8px",
+                bgcolor: "#fff5f5"
+            }}>
+                <Typography color="error" variant="h6">
+                    Error Rendering Graph
+                </Typography>
+                <Typography color="error" variant="body2">
+                    There was an error rendering the graph visualization. 
+                    Please check the console for more details.
+                </Typography>
+            </Box>
+        );
+    }
 };
 
 export default GraphVisualization;
