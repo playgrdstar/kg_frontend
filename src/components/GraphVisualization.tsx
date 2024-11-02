@@ -29,7 +29,6 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                 style: {
                     width: 20 + node.articles.length * 2,
                     height: 20 + node.articles.length * 2,
-                    backgroundColor: `hsl(${(node.community || 0) * 50}, 70%, 50%)`,
                 },
             };
         });
@@ -91,7 +90,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
     return (
         <CytoscapeComponent
             elements={elements}
-            style={{ width: "100%", height: "100%", backgroundColor: "gray" }}
+            style={{ width: "100%", height: "100%", backgroundColor: "white" }}
             cy={handleCyInit}
             layout={{ name: "preset" }}
         />

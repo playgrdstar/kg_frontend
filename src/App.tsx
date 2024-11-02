@@ -4,8 +4,9 @@ import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import AdjustIcon from '@mui/icons-material/Adjust';
 import GraphVisualization from "./components/GraphVisualization";
 import QueryInterface from "./components/QueryInterface";
-import { KnowledgeGraph, QueryResult } from "./types/api.types";
+import { Article, KnowledgeGraph, QueryResult } from "./types/api.types";
 import { generateKG, enrichKG, queryKG } from "./services/api";
+import ArticlePanel from "./components/ArticlePanel";
 
 const App: React.FC = () => {
     const [kgData, setKgData] = useState<KnowledgeGraph | null>(null);
@@ -24,6 +25,7 @@ const App: React.FC = () => {
         query: false,
     });
     const [query, setQuery] = useState<string>("");
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
     const handleGenerateKG = async () => {
         if (!tickers.trim()) return;
@@ -92,8 +94,21 @@ const App: React.FC = () => {
         }
     };
 
+    const getRelevantArticles = (nodeId: string | null): Article[] => {
+        if (!nodeId || !kgData) return kgData?.articles || [];
+        
+        // Find the selected node
+        const selectedNode = kgData.nodes.find(node => node.id === nodeId);
+        if (!selectedNode) return kgData.articles;
+
+        // Filter articles based on the node's article URLs
+        return kgData.articles.filter(article => 
+            selectedNode.articles.includes(article.url)
+        );
+    };
+
     return (
-        <Container>
+        <Container maxWidth="xl">
             <Typography variant="h5" gutterBottom>
                 Graph & Ask
             </Typography>
@@ -240,15 +255,55 @@ const App: React.FC = () => {
                     </Stack>
                 </Box>
             )}
-            {/* {kgId && (
-                <QueryInterface kgId={kgId} onQueryResult={handleQueryResult} />
-            )}
             {kgData && (
-                <GraphVisualization 
-                    data={kgData} 
-                    onNodeClick={(nodeId) => console.log("Node clicked:", nodeId)} 
-                />
-            )} */}
+                <Box sx={{ mt: 4 }}>
+                    <Box sx={{ 
+                        display: "flex",
+                        gap: 2,
+                        height: "600px"
+                    }}>
+                        <Box sx={{ 
+                            flex: 1,
+                            border: "1px solid #ddd",
+                            borderRadius: "8px",
+                            overflow: "hidden",
+                            position: "relative"
+                        }}>
+                            {isLoading ? (
+                                <Box sx={{
+                                    position: "absolute",
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    backgroundColor: "rgba(255, 255, 255, 0.7)"
+                                }}>
+                                    <CircularProgress />
+                                </Box>
+                            ) : (
+                                <GraphVisualization 
+                                    data={kgData} 
+                                    onNodeClick={(nodeId) => {
+                                        console.log("Node clicked:", nodeId);
+                                        setSelectedNodeId(nodeId);
+                                    }} 
+                                />
+                            )}
+                        </Box>
+                        
+                        <ArticlePanel
+                            articles={getRelevantArticles(selectedNodeId)}
+                            selectedNodeId={selectedNodeId}
+                            onClose={() => setSelectedNodeId(null)}
+                            kgSummary={kgData.summary}
+                            isEnriched={completedSteps.enrich}
+                        />
+                    </Box>
+                </Box>
+            )}
         </Container>
     );
 };
