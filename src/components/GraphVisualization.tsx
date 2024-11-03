@@ -12,12 +12,16 @@ import { cosineSimilarity } from "../utils/math";
 
 interface GraphVisualizationProps {
     data: KnowledgeGraph;
-    onNodeClick?: (nodeId: string) => void;
+    selectedNodes: Set<string>;
+    onNodeClick: (nodeId: string, isMultiSelect?: boolean) => void;
+    onSelectionClear: () => void;
 }
 
 const GraphVisualization: React.FC<GraphVisualizationProps> = ({
     data,
+    selectedNodes,
     onNodeClick,
+    onSelectionClear,
 }) => {
     const cyRef = useRef<Core | null>(null);
     const [networkThreshold, setNetworkThreshold] = useState<number>(0.8);
@@ -74,7 +78,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         const nodes = data.nodes.map(node => ({
             data: {
                 id: node.id,
-                label: node.type,
+                label: node.id,
                 width: 30,
                 height: 30,
             }
@@ -103,67 +107,89 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         return [...nodes, ...edges];
     };
 
-    const handleNodeSelection = (nodeId: string) => {
+    const handleNodeSelection = (nodeId: string, isMultiSelect: boolean = false) => {
+        console.log("Node selected:", {
+            nodeId,
+            isMultiSelect,
+            originalNode: data.nodes.find(n => n.id === nodeId)
+        });
+        
         if (!cyRef.current) return;
 
         const cy = cyRef.current;
         const selectedNode = data.nodes.find(n => n.id === nodeId);
         if (!selectedNode) return;
 
+        // Update selected nodes set
+        const newSelectedNodes = new Set(isMultiSelect ? selectedNodes : []);
+        if (selectedNodes.has(nodeId) && isMultiSelect) {
+            newSelectedNodes.delete(nodeId);
+        } else {
+            newSelectedNodes.add(nodeId);
+        }
+
         // Reset all nodes to default style
-        cy.nodes().removeClass('connected similar-embedding same-community selected');
+        cy.nodes().removeClass("connected similar-embedding same-community selected");
         cy.nodes().style({
-            'background-color': '#666',
-            'border-width': 2,
-            'border-color': '#666',
-            'opacity': 0.3
+            "background-color": "#666",
+            "border-width": 2,
+            "border-color": "#666",
+            "opacity": 0.3
         });
 
-        // Get different node sets
-        const connectedNodes = getConnectedNodes(nodeId, data.edges);
-        const communityNodes = getCommunityNodes(selectedNode, data.nodes);
-        const similarNodes = getSimilarNodes(selectedNode, data.nodes);
+        // Style for all selected nodes and their related nodes
+        newSelectedNodes.forEach(selectedId => {
+            const node = data.nodes.find(n => n.id === selectedId);
+            if (!node) return;
 
-        // Apply styles to different node categories
-        cy.nodes().forEach(node => {
-            const id = node.id();
-            if (id === nodeId) {
-                node.addClass('selected');
-                node.style({
-                    'background-color': 'lightblue',
-                    'border-color': 'lightblue',
-                    'opacity': 1
-                });
-            } else if (connectedNodes.has(id)) {
-                node.addClass('connected');
-                node.style({
-                    'background-color': 'lightblue',
-                    'border-color': 'lightblue',
-                    'opacity': 0.8
-                });
-            } else if (communityNodes.has(id)) {
-                node.addClass('same-community');
-                node.style({
-                    'background-color': 'orange',
-                    'border-color': 'orange',
-                    'opacity': 0.8
-                });
-            } else if (similarNodes.has(id)) {
-                node.addClass('similar-embedding');
-                node.style({
-                    'background-color': 'pink',
-                    'border-color': 'pink',
-                    'opacity': 0.8
-                });
-            }
+            const connectedNodes = getConnectedNodes(selectedId, data.edges);
+            const communityNodes = getCommunityNodes(node, data.nodes);
+            const similarNodes = getSimilarNodes(node, data.nodes);
+
+            // Apply styles
+            cy.nodes().forEach(cyNode => {
+                const id = cyNode.id();
+                if (newSelectedNodes.has(id)) {
+                    cyNode.addClass("selected");
+                    cyNode.style({
+                        "background-color": "lightblue",
+                        "border-color": "lightblue",
+                        "opacity": 1
+                    });
+                } else if (connectedNodes.has(id)) {
+                    cyNode.addClass("connected");
+                    cyNode.style({
+                        "background-color": "lightblue",
+                        "border-color": "lightblue",
+                        "opacity": 0.8
+                    });
+                } else if (communityNodes.has(id)) {
+                    cyNode.addClass("same-community");
+                    cyNode.style({
+                        "background-color": "orange",
+                        "border-color": "orange",
+                        "opacity": 0.8
+                    });
+                } else if (similarNodes.has(id)) {
+                    cyNode.addClass("similar-embedding");
+                    cyNode.style({
+                        "background-color": "pink",
+                        "border-color": "pink",
+                        "opacity": 0.8
+                    });
+                }
+            });
         });
 
-        // Highlight relevant edges
-        cy.edges().style({ 'opacity': 0.2 });
+        // Highlight edges connected to any selected node
+        cy.edges().style({ "opacity": 0.2 });
         cy.edges().filter(edge => 
-            edge.source().id() === nodeId || 
-            edge.target().id() === nodeId
-        ).style({ 'opacity': 1 });
+            newSelectedNodes.has(edge.source().id()) || 
+            newSelectedNodes.has(edge.target().id())
+        ).style({ "opacity": 1 });
+
+        // Call onNodeClick with the latest selected node
+        onNodeClick?.(nodeId, isMultiSelect);
     };
 
     const handleCyInit = (cy: Core): void => {
@@ -198,23 +224,23 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             }
         ]);
 
-        cy.on('tap', 'node', (event) => {
+        cy.on("tap", "node", (event) => {
             const nodeId = event.target.id();
-            handleNodeSelection(nodeId);
-            onNodeClick?.(nodeId);
+            handleNodeSelection(nodeId, event.originalEvent.shiftKey);
         });
 
-        cy.on('tap', function(event) {
+        cy.on("tap", function(event) {
             if (event.target === cy) {
-                // Clicked on background - reset styles
-                cy.nodes().removeClass('connected similar-embedding same-community selected');
+                // Clicked on background - reset styles and clear selection
+                cy.nodes().removeClass("connected similar-embedding same-community selected");
                 cy.nodes().style({
-                    'background-color': '#666',
-                    'border-width': 2,
-                    'border-color': '#666',
-                    'opacity': 1
+                    "background-color": "#666",
+                    "border-width": 2,
+                    "border-color": "#666",
+                    "opacity": 1
                 });
-                cy.edges().style({ 'opacity': 1 });
+                cy.edges().style({ "opacity": 1 });
+                onSelectionClear();
             }
         });
     };

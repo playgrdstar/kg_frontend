@@ -40,13 +40,15 @@ export const queryKG = async (
     kg_id: string,
     query: string,
     top_n: number = 5,
-    connected_hops: number = 1
+    connected_hops: number = 1,
+    selected_node_ids: string[] = []
 ): Promise<QueryResult> => {
     const response = await api.post("/query", {
         kg_id,
         query,
         top_n,
         connected_hops,
+        selected_node_ids,
     });
     return response.data;
 }; 

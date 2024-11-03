@@ -26,6 +26,7 @@ const App: React.FC = () => {
     });
     const [query, setQuery] = useState<string>("");
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+    const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
 
     const handleGenerateKG = async () => {
         if (!tickers.trim()) return;
@@ -70,7 +71,9 @@ const App: React.FC = () => {
             console.log("Enriched Knowledge Graph Response:", response);
             console.log("Enriched Nodes:", response.kg.nodes.length);
             console.log("Enriched Edges:", response.kg.edges.length);
+            
             setKgData(response.kg);
+            setKgId(response.kg_id);
             setCompletedSteps(prev => ({ ...prev, enrich: true }));
         } catch (error) {
             console.error("Error enriching KG:", error);
@@ -84,7 +87,24 @@ const App: React.FC = () => {
         
         setIsLoading(true);
         try {
-            const result = await queryKG(kgId, query);
+            console.log("Selected nodes being sent to backend:", Array.from(selectedNodes));
+            
+            const selectedNodesData = Array.from(selectedNodes).map(nodeId => {
+                const node = kgData?.nodes.find(n => n.id === nodeId);
+                return {
+                    id: nodeId,
+                    originalNode: node
+                };
+            });
+            console.log("Selected nodes full data:", selectedNodesData);
+            
+            const result = await queryKG(
+                kgId,
+                query,
+                5, // top_n
+                1, // connected_hops
+                Array.from(selectedNodes)
+            );
             handleQueryResult(result);
             setCompletedSteps(prev => ({ ...prev, query: true }));
         } catch (error) {
@@ -286,10 +306,26 @@ const App: React.FC = () => {
                             ) : (
                                 <GraphVisualization 
                                     data={kgData} 
-                                    onNodeClick={(nodeId) => {
+                                    selectedNodes={selectedNodes}
+                                    onNodeClick={(nodeId: string, isMultiSelect?: boolean) => {
                                         console.log("Node clicked:", nodeId);
+                                        if (isMultiSelect) {
+                                            const newSelectedNodes = new Set(selectedNodes);
+                                            if (newSelectedNodes.has(nodeId)) {
+                                                newSelectedNodes.delete(nodeId);
+                                            } else {
+                                                newSelectedNodes.add(nodeId);
+                                            }
+                                            setSelectedNodes(newSelectedNodes);
+                                        } else {
+                                            setSelectedNodes(new Set([nodeId]));
+                                        }
                                         setSelectedNodeId(nodeId);
-                                    }} 
+                                    }}
+                                    onSelectionClear={() => {
+                                        setSelectedNodes(new Set());
+                                        setSelectedNodeId(null);
+                                    }}
                                 />
                             )}
                         </Box>
