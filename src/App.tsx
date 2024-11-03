@@ -53,6 +53,7 @@ const App: React.FC = () => {
             console.log("Edges:", response.kg.edges.length);
             setKgData(response.kg);
             setKgId(response.kg_id);
+            setSelectedNodes(new Set(response.kg.nodes.map(node => node.id)));
             setCompletedSteps(prev => ({ ...prev, generate: true }));
         } catch (error) {
             console.error("Error generating KG:", error);
@@ -83,6 +84,7 @@ const App: React.FC = () => {
             
             setKgData(response.kg);
             setKgId(response.kg_id);
+            setSelectedNodes(new Set(response.kg.nodes.map(node => node.id)));
             setCompletedSteps(prev => ({ ...prev, enrich: true }));
         } catch (error) {
             console.error("Error enriching KG:", error);
@@ -92,16 +94,21 @@ const App: React.FC = () => {
     };
 
     const handleQuerySubmit = async () => {
-        if (!kgId || !query.trim()) return;
+        if (!kgId || !query.trim() || !kgData) return;
         
         setIsLoading(true);
         try {
+            // Use all nodes if none are explicitly selected
+            const nodesToQuery = selectedNodes.size > 0 
+                ? Array.from(selectedNodes)
+                : kgData.nodes.map(node => node.id);
+
             const result = await queryKG(
                 kgId,
                 query,
                 5,
                 1,
-                Array.from(selectedNodes)
+                nodesToQuery
             );
             handleQueryResult(result);
             setCompletedSteps(prev => ({ ...prev, query: true }));
@@ -113,15 +120,25 @@ const App: React.FC = () => {
     };
 
     const getRelevantArticles = (nodeId: string | null): Article[] => {
-        if (!nodeId || !kgData) return kgData?.articles || [];
+        if (!kgData) return [];
         
-        // Find the selected node
-        const selectedNode = kgData.nodes.find(node => node.id === nodeId);
-        if (!selectedNode) return kgData.articles;
+        // If no nodes are explicitly selected or selectedNodes is empty, return all articles
+        if (selectedNodes.size === 0) {
+            return kgData.articles;
+        }
 
-        // Filter articles based on the node's article URLs
+        // Get unique articles from all selected nodes
+        const selectedArticleUrls = new Set<string>();
+        Array.from(selectedNodes).forEach(nodeId => {
+            const node = kgData.nodes.find(node => node.id === nodeId);
+            if (node) {
+                node.articles.forEach(url => selectedArticleUrls.add(url));
+            }
+        });
+
+        // Filter articles based on the collected URLs
         return kgData.articles.filter(article => 
-            selectedNode.articles.includes(article.url)
+            selectedArticleUrls.has(article.url)
         );
     };
 
@@ -335,7 +352,7 @@ const App: React.FC = () => {
                                 ) : (
                                     <GraphVisualization 
                                         data={kgData} 
-                                        selectedNodes={selectedNodes}
+                                        selectedNodes={selectedNodes.size > 0 ? selectedNodes : new Set(kgData.nodes.map(node => node.id))}
                                         onNodeClick={(nodeId: string, isMultiSelect?: boolean) => {
                                             console.log("Node clicked:", nodeId);
                                             if (isMultiSelect) {
