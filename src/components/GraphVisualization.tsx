@@ -276,10 +276,19 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         
         return (
             <Box>
-                <Stack spacing={2} sx={{ mt: 2, mb: 2, ml: 4, mr: 4 }}>
-                    <Box>
-                        <Typography variant="subtitle2">
-                            Network Similarity: {networkThreshold.toFixed(2)}
+                <Stack spacing={1} sx={{ mt: 2, mb: 2, ml: 4, mr: 4 }}>
+                    {/* Network Similarity Slider */}
+                    <Box sx={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        gap: 1
+                    }}>
+                        <Typography 
+                            variant="body2" 
+                            color="textSecondary"
+                            sx={{ minWidth: "100px" }}
+                        >
+                            Network Similarity:
                         </Typography>
                         <Slider
                             value={networkThreshold}
@@ -293,14 +302,10 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                             }}
                             min={0}
                             max={1}
-                            step={0.05}
-                            marks={[
-                                { value: 0, label: '0' },
-                                { value: 0.5, label: '0.5' },
-                                { value: 1, label: '1' }
-                            ]}
-                            sx={{
-                                width: "100%",
+                            step={0.1}
+                            valueLabelDisplay="auto"
+                            sx={{ 
+                                flex: 1,
                                 '& .MuiSlider-thumb': {
                                     backgroundColor: 'gray',
                                 },
@@ -312,10 +317,23 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                                 }
                             }}
                         />
+                        <Typography variant="body2" sx={{ minWidth: "40px", textAlign: "right" }}>
+                            {networkThreshold.toFixed(2)}
+                        </Typography>
                     </Box>
-                    <Box>
-                        <Typography variant="subtitle2">
-                            Text Similarity: {textThreshold.toFixed(2)}
+
+                    {/* Text Similarity Slider */}
+                    <Box sx={{ 
+                        display: "flex", 
+                        alignItems: "center", 
+                        gap: 1
+                    }}>
+                        <Typography 
+                            variant="body2" 
+                            color="textSecondary"
+                            sx={{ minWidth: "100px" }}
+                        >
+                            Text Similarity:
                         </Typography>
                         <Slider
                             value={textThreshold}
@@ -329,14 +347,10 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                             }}
                             min={0}
                             max={1}
-                            step={0.05}
-                            marks={[
-                                { value: 0, label: '0' },
-                                { value: 0.5, label: '0.5' },
-                                { value: 1, label: '1' }
-                            ]}
-                            sx={{
-                                width: "100%",
+                            step={0.1}
+                            valueLabelDisplay="auto"
+                            sx={{ 
+                                flex: 1,
                                 '& .MuiSlider-thumb': {
                                     backgroundColor: 'gray',
                                 },
@@ -348,6 +362,9 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                                 }
                             }}
                         />
+                        <Typography variant="body2" sx={{ minWidth: "40px", textAlign: "right" }}>
+                            {textThreshold.toFixed(2)}
+                        </Typography>
                     </Box>
                 </Stack>
 

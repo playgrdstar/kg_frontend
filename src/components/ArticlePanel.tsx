@@ -59,7 +59,7 @@ const ArticlePanel: React.FC<ArticlePanelProps> = ({
             {/* Query Results Section */}
             {queryResponse && (
                 <Box sx={{ mb: 3, p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
-                    <Typography variant="h6" gutterBottom>
+                    <Typography variant="subtitle1" gutterBottom>
                         Query Results
                     </Typography>
                     <Typography variant="subtitle2" color="textSecondary" gutterBottom>
@@ -67,7 +67,7 @@ const ArticlePanel: React.FC<ArticlePanelProps> = ({
                     </Typography>
                     
                     {/* Answer */}
-                    <Typography variant="body1" paragraph>
+                    <Typography variant="body1">
                         {queryResponse.answer.answer}
                     </Typography>
 
@@ -109,40 +109,11 @@ const ArticlePanel: React.FC<ArticlePanelProps> = ({
                         </>
                     )}
 
-                    {/* Sources */}
-                    {queryResponse.answer.sources.length > 0 && (
-                        <>
-                            <Typography variant="subtitle1" gutterBottom>
-                                Sources
-                            </Typography>
-                            <List dense>
-                                {queryResponse.answer.sources.map((source: string, index: number) => (
-                                    <ListItem key={index}>
-                                        <ListItemIcon>
-                                            <LinkIcon fontSize="small" />
-                                        </ListItemIcon>
-                                        <ListItemText 
-                                            primary={source}
-                                            sx={{ 
-                                                "& a": { 
-                                                    color: "primary.main",
-                                                    textDecoration: "none"
-                                                }
-                                            }}
-                                        />
-                                    </ListItem>
-                                ))}
-                            </List>
-                        </>
-                    )}
                 </Box>
             )}
 
             {/* Existing Article Panel Content */}
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                <Typography variant="h6">
-                    {selectedNodeId ? `Articles for ${selectedNodeId}` : "Knowledge Graph Summary"}
-                </Typography>
                 {onClose && (
                     <IconButton onClick={onClose} size="small">
                         <RefreshIcon />
