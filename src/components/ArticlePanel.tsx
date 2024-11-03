@@ -9,10 +9,15 @@ import {
     ListItemText,
     Divider,
     IconButton,
-    Stack
+    Stack,
+    Chip,
+    ListItemIcon
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import RefreshIcon from '@mui/icons-material/Refresh';
+import CircleIcon from '@mui/icons-material/Circle';
+import LinkIcon from '@mui/icons-material/Link';
+import { QueryResponse } from "../types/api.types";
 
 interface Article {
     title: string;
@@ -27,13 +32,17 @@ interface ArticlePanelProps {
     /** List of articles to display */
     articles: Article[];
     /** Callback function to close the panel */
-    onClose?: () => void;
+    onClose: () => void;
     /** ID of the selected node, null if no node is selected */
     selectedNodeId: string | null;
     /** Overall summary of the knowledge graph */
     kgSummary?: string;
     /** Whether the graph has been enriched */
     isEnriched: boolean;
+    /** Query response to display */
+    queryResponse: QueryResponse | null;
+    /** Current query to display */
+    currentQuery: string;
 }
 
 const ArticlePanel: React.FC<ArticlePanelProps> = ({
@@ -41,19 +50,95 @@ const ArticlePanel: React.FC<ArticlePanelProps> = ({
     onClose,
     selectedNodeId,
     kgSummary,
-    isEnriched
+    isEnriched,
+    queryResponse,
+    currentQuery
 }) => {
     return (
-        <Paper
-            elevation={3}
-            sx={{
-                width: "400px",
-                height: "100%",
-                overflow: "auto",
-                borderRadius: "8px",
-                p: 2
-            }}
-        >
+        <Box sx={{ width: "400px", height: "100%", overflow: "auto" }}>
+            {/* Query Results Section */}
+            {queryResponse && (
+                <Box sx={{ mb: 3, p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
+                    <Typography variant="h6" gutterBottom>
+                        Query Results
+                    </Typography>
+                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                        {currentQuery}
+                    </Typography>
+                    
+                    {/* Answer */}
+                    <Typography variant="body1" paragraph>
+                        {queryResponse.answer.answer}
+                    </Typography>
+
+                    {/* Key Entities */}
+                    {queryResponse.answer.key_entities.length > 0 && (
+                        <>
+                            <Typography variant="subtitle1" gutterBottom>
+                                Key Entities
+                            </Typography>
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
+                                {queryResponse.answer.key_entities.map((entity: string, index: number) => (
+                                    <Chip
+                                        key={index}
+                                        label={entity}
+                                        size="small"
+                                        sx={{ backgroundColor: "#e0e0e0" }}
+                                    />
+                                ))}
+                            </Box>
+                        </>
+                    )}
+
+                    {/* Evidence */}
+                    {queryResponse.answer.evidence.length > 0 && (
+                        <>
+                            <Typography variant="subtitle1" gutterBottom>
+                                Evidence
+                            </Typography>
+                            <List dense>
+                                {queryResponse.answer.evidence.map((item: string, index: number) => (
+                                    <ListItem key={index}>
+                                        <ListItemIcon>
+                                            <CircleIcon sx={{ fontSize: 8 }} />
+                                        </ListItemIcon>
+                                        <ListItemText primary={item} />
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </>
+                    )}
+
+                    {/* Sources */}
+                    {queryResponse.answer.sources.length > 0 && (
+                        <>
+                            <Typography variant="subtitle1" gutterBottom>
+                                Sources
+                            </Typography>
+                            <List dense>
+                                {queryResponse.answer.sources.map((source: string, index: number) => (
+                                    <ListItem key={index}>
+                                        <ListItemIcon>
+                                            <LinkIcon fontSize="small" />
+                                        </ListItemIcon>
+                                        <ListItemText 
+                                            primary={source}
+                                            sx={{ 
+                                                "& a": { 
+                                                    color: "primary.main",
+                                                    textDecoration: "none"
+                                                }
+                                            }}
+                                        />
+                                    </ListItem>
+                                ))}
+                            </List>
+                        </>
+                    )}
+                </Box>
+            )}
+
+            {/* Existing Article Panel Content */}
             <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
                 <Typography variant="h6">
                     {selectedNodeId ? `Articles for ${selectedNodeId}` : "Knowledge Graph Summary"}
@@ -111,7 +196,7 @@ const ArticlePanel: React.FC<ArticlePanelProps> = ({
                     ))}
                 </List>
             )}
-        </Paper>
+        </Box>
     );
 };
 

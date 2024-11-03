@@ -44,18 +44,12 @@ export interface QueryAnswer {
     connections: string[];
     sources: string[];
     key_entities: string[];
-    metadata: {
-        confidence_scores: {
-            text_similarity: number;
-            entity_similarity: number;
-            connection_strength: number;
-        };
-        query_stats: {
-            matched_nodes: number;
-            related_entities: number;
-            connected_nodes: number;
-        };
-    };
+    metadata: Record<string, any>;
+}
+
+export interface QueryResponse {
+    query_results: Record<string, any[]>;
+    answer: QueryAnswer;
 }
 
 export interface QueryResult {

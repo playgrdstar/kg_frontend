@@ -4,7 +4,7 @@ import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import AdjustIcon from '@mui/icons-material/Adjust';
 import GraphVisualization from "./components/GraphVisualization";
 import QueryInterface from "./components/QueryInterface";
-import { Article, KnowledgeGraph, QueryResult } from "./types/api.types";
+import { Article, KnowledgeGraph, QueryResult, QueryAnswer, QueryResponse } from "./types/api.types";
 import { generateKG, enrichKG, queryKG } from "./services/api";
 import ArticlePanel from "./components/ArticlePanel";
 
@@ -27,6 +27,7 @@ const App: React.FC = () => {
     const [query, setQuery] = useState<string>("");
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
+    const [queryResponse, setQueryResponse] = useState<QueryResponse | null>(null);
 
     const handleGenerateKG = async () => {
         if (!tickers.trim()) return;
@@ -53,8 +54,9 @@ const App: React.FC = () => {
         }
     };
 
-    const handleQueryResult = (result: QueryResult) => {
+    const handleQueryResult = (result: QueryResponse) => {
         console.log("Query Result:", result);
+        setQueryResponse(result);
     };
 
     const handleEnrichKG = async (): Promise<void> => {
@@ -87,22 +89,11 @@ const App: React.FC = () => {
         
         setIsLoading(true);
         try {
-            console.log("Selected nodes being sent to backend:", Array.from(selectedNodes));
-            
-            const selectedNodesData = Array.from(selectedNodes).map(nodeId => {
-                const node = kgData?.nodes.find(n => n.id === nodeId);
-                return {
-                    id: nodeId,
-                    originalNode: node
-                };
-            });
-            console.log("Selected nodes full data:", selectedNodesData);
-            
             const result = await queryKG(
                 kgId,
                 query,
-                5, // top_n
-                1, // connected_hops
+                5,
+                1,
                 Array.from(selectedNodes)
             );
             handleQueryResult(result);
@@ -336,6 +327,8 @@ const App: React.FC = () => {
                             onClose={() => setSelectedNodeId(null)}
                             kgSummary={kgData.summary}
                             isEnriched={completedSteps.enrich}
+                            queryResponse={queryResponse}
+                            currentQuery={query}
                         />
                     </Box>
                 </Box>
