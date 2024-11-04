@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Box, Stack, Container, Typography, TextField, Button, IconButton, Divider, CircularProgress, Drawer } from "@mui/material";
+import { Box, Stack, Container, Typography, TextField, Button, IconButton, Divider, CircularProgress, Drawer, Chip } from "@mui/material";
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import AdjustIcon from '@mui/icons-material/Adjust';
 import GraphVisualization from "./components/GraphVisualization";
@@ -35,6 +35,12 @@ const App: React.FC = () => {
     const [queryResponse, setQueryResponse] = useState<QueryResponse | null>(null);
     const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
     const [isRightPanelOpen, setIsRightPanelOpen] = useState<boolean>(true);
+
+    const getNodeLabel = (nodeId: string): string => {
+        if (!kgData) return nodeId;
+        const node = kgData.nodes.find(n => n.id === nodeId);
+        return nodeId;
+    };
 
     const handleGenerateKG = async () => {
         if (!tickers.trim()) return;
@@ -143,7 +149,17 @@ const App: React.FC = () => {
     };
 
     return (
-        <Container maxWidth="xl">
+        <Container 
+            maxWidth="xl" 
+            sx={{
+                mt: 0,
+                pt: 10,
+                minHeight: "100vh",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "stretch"
+            }}
+            >
             <Box sx={{ 
                 transition: "margin-right 0.3s ease-in-out",
                 marginRight: isRightPanelOpen ? "400px" : 0,
@@ -283,145 +299,168 @@ const App: React.FC = () => {
                         margin="normal"
                         />
                     </Stack>
-                </Box>
-                {completedSteps.enrich && (
-                    <Box sx={{ mt: 4 }}>
-                        <Stack direction="row" spacing={2} sx={{ width: "100%" }}>
-                            <TextField
-                                fullWidth
-                                label="Enter your query"
-                                value={query}
-                                onChange={(e) => setQuery(e.target.value)}
-                                placeholder="Ask a question about the knowledge graph..."
-                                multiline
-                                rows={1}
-                                disabled={isLoading}
-                                sx={{
-                                    "& .MuiOutlinedInput-root": {
-                                        borderRadius: "8px",
-                                    }
-                                }}
-                            />
-                            <Button
-                                variant="contained"
-                                onClick={handleQuerySubmit}
-                                disabled={isLoading || !query.trim()}
-                                sx={{
-                                    height: "56px",
-                                    alignSelf: "flex-end",
-                                    minWidth: "120px"
-                                }}
-                            >
-                                {isLoading ? (
-                                    <CircularProgress size={24} color="inherit" />
-                                ) : (
-                                    "Query"
-                                )}
-                            </Button>
+                    <Box sx={{ mt: 2, mb: 2 }}>
+                        <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: "block" }}>
+                            Selected Nodes ({selectedNodes.size})
+                        </Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                            {Array.from(selectedNodes).map((nodeId) => (
+                                <Chip
+                                    key={nodeId}
+                                    // label={getNodeLabel(nodeId)}
+                                    label={nodeId}
+                                    onDelete={() => {
+                                        const newSelectedNodes = new Set(selectedNodes);
+                                        newSelectedNodes.delete(nodeId);
+                                        setSelectedNodes(newSelectedNodes);
+                                    }}
+                                    size="small"
+                                    sx={{ mb: 1 }}
+                                />
+                            ))}
                         </Stack>
                     </Box>
-                )}
-                {kgData && (
-                    <Box sx={{ mt: 4 }}>
-                        <Box sx={{ 
-                            display: "flex",
-                            gap: 2,
-                            height: "600px",
-                        }}>
+                    {completedSteps.enrich && (
+                        <Box sx={{ mt: 4 }}>
+                            <Stack direction="row" spacing={2} sx={{ width: "100%" }}>
+                                <TextField
+                                    fullWidth
+                                    label="Enter your query"
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    placeholder="Ask a question about the knowledge graph..."
+                                    multiline
+                                    rows={1}
+                                    disabled={isLoading}
+                                    sx={{
+                                        "& .MuiOutlinedInput-root": {
+                                            borderRadius: "8px",
+                                        }
+                                    }}
+                                />
+                                <Button
+                                    variant="contained"
+                                    onClick={handleQuerySubmit}
+                                    disabled={isLoading || !query.trim()}
+                                    sx={{
+                                        height: "56px",
+                                        alignSelf: "flex-end",
+                                        minWidth: "120px"
+                                    }}
+                                >
+                                    {isLoading ? (
+                                        <CircularProgress size={24} color="inherit" />
+                                    ) : (
+                                        "Query"
+                                    )}
+                                </Button>
+                            </Stack>
+                        </Box>
+                    )}
+                    {kgData && (
+                        <Box sx={{ mt: 4 }}>
                             <Box sx={{ 
-                                flex: 1,
-                                border: "1px solid #ddd",
-                                borderRadius: "8px",
-                                overflow: "hidden",
-                                position: "relative"
+                                display: "flex",
+                                gap: 2,
+                                height: "600px",
                             }}>
-                                {isLoading ? (
-                                    <Box sx={{
-                                        position: "absolute",
-                                        top: 0,
-                                        left: 0,
-                                        right: 0,
-                                        bottom: 0,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        backgroundColor: "rgba(255, 255, 255, 0.7)"
-                                    }}>
-                                        <CircularProgress />
-                                    </Box>
-                                ) : (
-                                    <GraphVisualization 
-                                        data={kgData} 
-                                        selectedNodes={selectedNodes.size > 0 ? selectedNodes : new Set(kgData.nodes.map(node => node.id))}
-                                        onNodeClick={(nodeId: string, isMultiSelect?: boolean) => {
-                                            console.log("Node clicked:", nodeId);
-                                            if (isMultiSelect) {
-                                                const newSelectedNodes = new Set(selectedNodes);
-                                                if (newSelectedNodes.has(nodeId)) {
-                                                    newSelectedNodes.delete(nodeId);
+                                <Box sx={{ 
+                                    flex: 1,
+                                    border: "1px solid #ddd",
+                                    borderRadius: "8px",
+                                    overflow: "hidden",
+                                    position: "relative"
+                                }}>
+                                    {isLoading ? (
+                                        <Box sx={{
+                                            position: "absolute",
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            bottom: 0,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            backgroundColor: "rgba(255, 255, 255, 0.7)"
+                                        }}>
+                                            <CircularProgress />
+                                        </Box>
+                                    ) : (
+                                        <GraphVisualization 
+                                            data={kgData} 
+                                            selectedNodes={selectedNodes.size > 0 ? selectedNodes : new Set(kgData.nodes.map(node => node.id))}
+                                            onNodeClick={(nodeId: string, isMultiSelect?: boolean) => {
+                                                console.log("Node clicked:", nodeId);
+                                                if (isMultiSelect) {
+                                                    const newSelectedNodes = new Set(selectedNodes);
+                                                    if (newSelectedNodes.has(nodeId)) {
+                                                        newSelectedNodes.delete(nodeId);
+                                                        setSelectedNodeId(null);
+                                                    } else {
+                                                        newSelectedNodes.add(nodeId);
+                                                        setSelectedNodeId(nodeId);
+                                                    }
+                                                    setSelectedNodes(newSelectedNodes);
                                                 } else {
-                                                    newSelectedNodes.add(nodeId);
+                                                    setSelectedNodes(new Set([nodeId]));
+                                                    setSelectedNodeId(nodeId);
                                                 }
-                                                setSelectedNodes(newSelectedNodes);
-                                            } else {
-                                                setSelectedNodes(new Set([nodeId]));
-                                            }
-                                            setSelectedNodeId(nodeId);
-                                        }}
-                                        onSelectionClear={() => {
-                                            setSelectedNodes(new Set());
-                                            setSelectedNodeId(null);
-                                        }}
-                                    />
-                                )}
+                                            }}
+                                            onSelectionClear={() => {
+                                                setSelectedNodes(new Set());
+                                                setSelectedNodeId(null);
+                                            }}
+                                        />
+                                    )}
+                                </Box>
                             </Box>
                         </Box>
-                    </Box>
-                )}
-                <Drawer
-                    anchor="right"
-                    open={isRightPanelOpen}
-                    onClose={() => setIsRightPanelOpen(false)}
-                    variant="persistent"
-                    PaperProps={{
-                        sx: {
-                            width: "400px",
-                            position: "fixed",
-                            height: "100%",
-                            top: 0,
-                            pt: 2,
-                            px: 2,
-                            transition: "transform 0.3s ease-in-out",
-                            transform: isRightPanelOpen ? "translateX(0)" : "translateX(100%)"
-                        }
-                    }}
-                >
-                    <Box sx={{ 
-                        display: "flex", 
-                        justifyContent: "space-between", 
-                        alignItems: "center",
-                        mb: 2
-                    }}>
-                        <Typography variant="h6">
-                            Details
-                        </Typography>
-                        <IconButton 
-                            onClick={() => setIsRightPanelOpen(false)}
-                            size="small"
-                        >
-                            <KeyboardDoubleArrowRightIcon />
-                        </IconButton>
-                    </Box>
-                    <ArticlePanel
-                        articles={getRelevantArticles(selectedNodeId)}
-                        selectedNodeId={selectedNodeId}
-                        onClose={() => setSelectedNodeId(null)}
-                        kgSummary={kgData?.summary}
-                        isEnriched={completedSteps.enrich}
-                        queryResponse={queryResponse}
-                        currentQuery={query}
-                    />
-                </Drawer>
+                    )}
+                    <Drawer
+                        anchor="right"
+                        open={isRightPanelOpen}
+                        onClose={() => setIsRightPanelOpen(false)}
+                        variant="persistent"
+                        PaperProps={{
+                            sx: {
+                                width: "400px",
+                                position: "fixed",
+                                height: "100%",
+                                top: 0,
+                                pt: 2,
+                                px: 2,
+                                transition: "transform 0.3s ease-in-out",
+                                transform: isRightPanelOpen ? "translateX(0)" : "translateX(100%)"
+                            }
+                        }}
+                    >
+                        <Box sx={{ 
+                            display: "flex", 
+                            justifyContent: "space-between", 
+                            alignItems: "center",
+                            mb: 2
+                        }}>
+                            <Typography variant="h6">
+                                Details
+                            </Typography>
+                            <IconButton 
+                                onClick={() => setIsRightPanelOpen(false)}
+                                size="small"
+                            >
+                                <KeyboardDoubleArrowRightIcon />
+                            </IconButton>
+                        </Box>
+                        <ArticlePanel
+                            articles={getRelevantArticles(selectedNodeId)}
+                            selectedNodeId={selectedNodeId}
+                            onClose={() => setSelectedNodeId(null)}
+                            kgSummary={kgData?.summary}
+                            isEnriched={completedSteps.enrich}
+                            queryResponse={queryResponse}
+                            currentQuery={query}
+                        />
+                    </Drawer>
+                </Box>
             </Box>
         </Container>
     );

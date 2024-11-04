@@ -5,16 +5,32 @@ import {
     Box, 
     Slider, 
     Typography, 
-    Stack 
+    Stack,
+    Popper,
+    Paper,
+    ClickAwayListener,
+    IconButton
 } from "@mui/material";
 import { KnowledgeGraph, KGNode, KGEdge } from "../types/api.types";
 import { cosineSimilarity } from "../utils/math";
+import CenterFocusStrongIcon from '@mui/icons-material/CenterFocusStrong';
 
 interface GraphVisualizationProps {
     data: KnowledgeGraph;
     selectedNodes: Set<string>;
     onNodeClick: (nodeId: string, isMultiSelect?: boolean) => void;
     onSelectionClear: () => void;
+}
+
+interface NodeTooltipProps {
+    node: KGNode | null;
+    anchorEl: HTMLElement | null;
+    onClose: () => void;
+}
+
+interface TooltipPosition {
+    x: number;
+    y: number;
 }
 
 const GraphVisualization: React.FC<GraphVisualizationProps> = ({
@@ -26,6 +42,9 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
     const cyRef = useRef<Core | null>(null);
     const [networkThreshold, setNetworkThreshold] = useState<number>(0.8);
     const [textThreshold, setTextThreshold] = useState<number>(0.8);
+    const [tooltipNode, setTooltipNode] = useState<KGNode | null>(null);
+    const [tooltipAnchor, setTooltipAnchor] = useState<HTMLElement | null>(null);
+    const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
 
     // Update getSimilarNodes to use separate thresholds
     const getSimilarNodes = (node: KGNode, nodes: KGNode[]) => {
@@ -243,6 +262,30 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                 onSelectionClear();
             }
         });
+
+        // Add hover events
+        cy.on("mouseover", "node", (event) => {
+            const node = event.target;
+            const nodeData = data.nodes.find(n => n.id === node.id());
+            if (nodeData) {
+                const renderedPosition = node.renderedPosition();
+                const containerBox = cy.container()?.getBoundingClientRect();
+                if (containerBox) {
+                    setTooltipPosition({
+                        x: containerBox.left + renderedPosition.x,
+                        y: containerBox.top + renderedPosition.y,
+                    });
+                    setTooltipNode(nodeData);
+                    setTooltipAnchor(cy.container());
+                }
+            }
+        });
+
+        cy.on("mouseout", "node", () => {
+            setTooltipNode(null);
+            setTooltipAnchor(null);
+            setTooltipPosition(null);
+        });
     };
 
     // Add error boundary for Cytoscape component
@@ -267,6 +310,15 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                 console.warn(`Duplicate node ID found: ${node.id}`);
             }
             nodeIds.add(node.id);
+        });
+    };
+
+    const handleResetView = () => {
+        if (!cyRef.current) return;
+        cyRef.current.fit(); // Fits and centers the graph
+        cyRef.current.zoom({ // Optional: set a specific zoom level
+            level: 2.5,
+            position: { x: 0, y: 0 }
         });
     };
 
@@ -375,11 +427,38 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                     height: "600px",
                     position: "relative"
                 }}>
+                    <IconButton
+                        onClick={handleResetView}
+                        sx={{
+                            position: "absolute",
+                            right: 16,
+                            top: 16,
+                            zIndex: 1,
+                            backgroundColor: "background.paper",
+                            boxShadow: 1,
+                            "&:hover": {
+                                backgroundColor: "background.default"
+                            }
+                        }}
+                        size="small"
+                    >
+                        <CenterFocusStrongIcon />
+                    </IconButton>
+
                     <CytoscapeComponent
                         elements={getElements()}
                         style={{ width: "100%", height: "100%" }}
                         cy={handleCyInit}
                         layout={{ name: "cose", animate: false }}
+                    />
+                    <NodeTooltip
+                        node={tooltipNode}
+                        anchorEl={tooltipAnchor}
+                        onClose={() => {
+                            setTooltipNode(null);
+                            setTooltipAnchor(null);
+                            setTooltipPosition(null);
+                        }}
                     />
                 </Box>
             </Box>
@@ -403,6 +482,64 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             </Box>
         );
     }
+};
+
+const NodeTooltip: React.FC<NodeTooltipProps> = ({ node, anchorEl, onClose }) => {
+    if (!node) return null;
+
+    return (
+        <Popper
+            open={Boolean(anchorEl)}
+            anchorEl={anchorEl}
+            placement="top"
+            modifiers={[
+                {
+                    name: "offset",
+                    options: {
+                        offset: [0, 0],
+                    },
+                },
+            ]}
+        >
+            <ClickAwayListener onClickAway={onClose}>
+                <Paper 
+                    elevation={3}
+                    sx={{
+                        p: 2,
+                        maxWidth: "300px",
+                        bgcolor: "background.paper",
+                        borderRadius: 1,
+                    }}
+                >
+                    <Typography variant="subtitle2" gutterBottom>
+                        Node: {node.id}
+                    </Typography>
+                    <Typography variant="subtitle2" gutterBottom>
+                        Type: {node.type}
+                    </Typography>      
+                    <Typography variant="subtitle2" gutterBottom>
+                        Summary: {node.summary}
+                    </Typography>                
+                    {node.community !== null && (
+                        <Typography variant="subtitle2" gutterBottom>
+                            Community: {node.community}
+                        </Typography>
+                    )}
+                    {node.articles && (
+                        <Typography variant="subtitle2" gutterBottom>
+                            Related Articles: {node.articles.map((article, index) => (
+                                <a key={index} href={article} target="_blank" rel="noopener noreferrer">
+                                    {index < node.articles.length - 1 ? 'Link, ' : 'Link'}
+                                </a>
+                            ))}
+                        </Typography>
+                    )}
+
+                    {/* Add any other node properties you want to display */}
+                </Paper>
+            </ClickAwayListener>
+        </Popper>
+    );
 };
 
 export default GraphVisualization;
