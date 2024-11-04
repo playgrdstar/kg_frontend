@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import CytoscapeComponent from "react-cytoscapejs";
 import { Core } from "cytoscape";
 import { 
@@ -6,9 +6,6 @@ import {
     Slider, 
     Typography, 
     Stack,
-    Popper,
-    Paper,
-    ClickAwayListener,
     IconButton
 } from "@mui/material";
 import { KnowledgeGraph, KGNode, KGEdge } from "../types/api.types";
@@ -22,17 +19,6 @@ interface GraphVisualizationProps {
     onSelectionClear: () => void;
 }
 
-interface NodeTooltipProps {
-    node: KGNode | null;
-    anchorEl: HTMLElement | null;
-    onClose: () => void;
-}
-
-interface TooltipPosition {
-    x: number;
-    y: number;
-}
-
 const GraphVisualization: React.FC<GraphVisualizationProps> = ({
     data,
     selectedNodes,
@@ -42,9 +28,6 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
     const cyRef = useRef<Core | null>(null);
     const [networkThreshold, setNetworkThreshold] = useState<number>(0.8);
     const [textThreshold, setTextThreshold] = useState<number>(0.8);
-    const [tooltipNode, setTooltipNode] = useState<KGNode | null>(null);
-    const [tooltipAnchor, setTooltipAnchor] = useState<HTMLElement | null>(null);
-    const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
 
     // Update getSimilarNodes to use separate thresholds
     const getSimilarNodes = (node: KGNode, nodes: KGNode[]) => {
@@ -90,40 +73,68 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
 
     // Convert graph data to Cytoscape elements with validation
     const getElements = () => {
-        // Create a Set of valid node IDs for quick lookup
-        const validNodeIds = new Set(data.nodes.map(node => node.id));
+        try {
+            // Create a Set of valid node IDs for quick lookup
+            const validNodeIds = new Set(data.nodes.map(node => node.id));
 
-        // Filter and map nodes
-        const nodes = data.nodes.map(node => ({
-            data: {
-                id: node.id,
-                label: node.id,
-                width: 30,
-                height: 30,
-            }
-        }));
+            // Filter and map nodes
+            const nodes = data.nodes.map(node => ({
+                data: {
+                    id: node.id,
+                    label: node.id,
+                    width: 30,
+                    height: 30,
+                }
+            }));
 
-        // Filter and map edges, excluding those with invalid source/target
-        const edges = data.edges.filter(edge => {
-            const isValid = validNodeIds.has(edge.source) && validNodeIds.has(edge.target);
-            if (!isValid) {
-                console.warn(
-                    `Skipping invalid edge: ${edge.source} -> ${edge.target}`,
-                    `Label: ${edge.label}`,
-                    `Reason: ${!validNodeIds.has(edge.source) ? 'Invalid source' : 'Invalid target'}`
-                );
-            }
-            return isValid;
-        }).map(edge => ({
-            data: {
-                id: `${edge.source}-${edge.target}`,
-                source: edge.source,
-                target: edge.target,
-                label: edge.label
-            }
-        }));
+            // Filter and map edges, excluding those with invalid source/target
+            const validEdges = data.edges.filter(edge => {
+                const isValid = validNodeIds.has(edge.source) && validNodeIds.has(edge.target);
+                if (!isValid) {
+                    // Log warning but don't throw error
+                    console.warn(
+                        "Invalid edge found:",
+                        {
+                            source: edge.source,
+                            target: edge.target,
+                            label: edge.label,
+                            validSource: validNodeIds.has(edge.source),
+                            validTarget: validNodeIds.has(edge.target)
+                        }
+                    );
+                }
+                return isValid;
+            });
 
-        return [...nodes, ...edges];
+            const edges = validEdges.map(edge => ({
+                data: {
+                    id: `${edge.source}-${edge.target}`,
+                    source: edge.source,
+                    target: edge.target,
+                    label: edge.label
+                }
+            }));
+
+            // Debug logging
+            console.debug("Graph elements:", {
+                totalNodes: nodes.length,
+                totalEdges: edges.length,
+                validNodeIds: Array.from(validNodeIds),
+            });
+
+            return [...nodes, ...edges];
+        } catch (error) {
+            console.error("Error in getElements:", error);
+            // Return at least the nodes if there's an error with edges
+            return data.nodes.map(node => ({
+                data: {
+                    id: node.id,
+                    label: node.id,
+                    width: 30,
+                    height: 30,
+                }
+            }));
+        }
     };
 
     const handleNodeSelection = (nodeId: string, isMultiSelect: boolean = false) => {
@@ -262,30 +273,6 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                 onSelectionClear();
             }
         });
-
-        // Add hover events
-        cy.on("mouseover", "node", (event) => {
-            const node = event.target;
-            const nodeData = data.nodes.find(n => n.id === node.id());
-            if (nodeData) {
-                const renderedPosition = node.renderedPosition();
-                const containerBox = cy.container()?.getBoundingClientRect();
-                if (containerBox) {
-                    setTooltipPosition({
-                        x: containerBox.left + renderedPosition.x,
-                        y: containerBox.top + renderedPosition.y,
-                    });
-                    setTooltipNode(nodeData);
-                    setTooltipAnchor(cy.container());
-                }
-            }
-        });
-
-        cy.on("mouseout", "node", () => {
-            setTooltipNode(null);
-            setTooltipAnchor(null);
-            setTooltipPosition(null);
-        });
     };
 
     // Add error boundary for Cytoscape component
@@ -296,21 +283,35 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
 
     // Validate graph data before rendering
     const validateGraphData = () => {
-        if (!data.nodes || !Array.isArray(data.nodes)) {
-            throw new Error("Invalid nodes data");
+        if (!data || !data.nodes || !data.edges) {
+            throw new Error("Invalid graph data structure");
         }
-        if (!data.edges || !Array.isArray(data.edges)) {
-            throw new Error("Invalid edges data");
+
+        // Check nodes
+        const nodeIssues = data.nodes.filter(node => !node.id);
+        if (nodeIssues.length > 0) {
+            console.warn("Nodes with missing IDs:", nodeIssues);
         }
-        
+
+        // Check edges
+        const edgeIssues = data.edges.filter(edge => !edge.source || !edge.target);
+        if (edgeIssues.length > 0) {
+            console.warn("Edges with missing source/target:", edgeIssues);
+        }
+
         // Check for duplicate node IDs
         const nodeIds = new Set<string>();
-        data.nodes.forEach(node => {
+        const duplicateNodes = data.nodes.filter(node => {
             if (nodeIds.has(node.id)) {
-                console.warn(`Duplicate node ID found: ${node.id}`);
+                return true;
             }
             nodeIds.add(node.id);
+            return false;
         });
+
+        if (duplicateNodes.length > 0) {
+            console.warn("Duplicate node IDs found:", duplicateNodes);
+        }
     };
 
     const handleResetView = () => {
@@ -321,6 +322,14 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             position: { x: 0, y: 0 }
         });
     };
+
+    // Add this useEffect to log data changes
+    useEffect(() => {
+        console.debug("Graph data changed:", {
+            nodes: data.nodes.map(n => n.id),
+            edges: data.edges.map(e => ({ source: e.source, target: e.target }))
+        });
+    }, [data]);
 
     // Wrap the render in try-catch
     try {
@@ -451,15 +460,6 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                         cy={handleCyInit}
                         layout={{ name: "cose", animate: false }}
                     />
-                    <NodeTooltip
-                        node={tooltipNode}
-                        anchorEl={tooltipAnchor}
-                        onClose={() => {
-                            setTooltipNode(null);
-                            setTooltipAnchor(null);
-                            setTooltipPosition(null);
-                        }}
-                    />
                 </Box>
             </Box>
         );
@@ -482,64 +482,6 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             </Box>
         );
     }
-};
-
-const NodeTooltip: React.FC<NodeTooltipProps> = ({ node, anchorEl, onClose }) => {
-    if (!node) return null;
-
-    return (
-        <Popper
-            open={Boolean(anchorEl)}
-            anchorEl={anchorEl}
-            placement="top"
-            modifiers={[
-                {
-                    name: "offset",
-                    options: {
-                        offset: [0, 0],
-                    },
-                },
-            ]}
-        >
-            <ClickAwayListener onClickAway={onClose}>
-                <Paper 
-                    elevation={3}
-                    sx={{
-                        p: 2,
-                        maxWidth: "300px",
-                        bgcolor: "background.paper",
-                        borderRadius: 1,
-                    }}
-                >
-                    <Typography variant="subtitle2" gutterBottom>
-                        Node: {node.id}
-                    </Typography>
-                    <Typography variant="subtitle2" gutterBottom>
-                        Type: {node.type}
-                    </Typography>      
-                    <Typography variant="subtitle2" gutterBottom>
-                        Summary: {node.summary}
-                    </Typography>                
-                    {node.community !== null && (
-                        <Typography variant="subtitle2" gutterBottom>
-                            Community: {node.community}
-                        </Typography>
-                    )}
-                    {node.articles && (
-                        <Typography variant="subtitle2" gutterBottom>
-                            Related Articles: {node.articles.map((article, index) => (
-                                <a key={index} href={article} target="_blank" rel="noopener noreferrer">
-                                    {index < node.articles.length - 1 ? 'Link, ' : 'Link'}
-                                </a>
-                            ))}
-                        </Typography>
-                    )}
-
-                    {/* Add any other node properties you want to display */}
-                </Paper>
-            </ClickAwayListener>
-        </Popper>
-    );
 };
 
 export default GraphVisualization;

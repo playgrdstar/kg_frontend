@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Box, Stack, Container, Typography, TextField, Button, IconButton, Divider, CircularProgress, Drawer, Chip } from "@mui/material";
+import { Box, Stack, Container, Typography, TextField, Button, IconButton, Divider, CircularProgress, Drawer, Chip, Link } from "@mui/material";
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import AdjustIcon from '@mui/icons-material/Adjust';
 import GraphVisualization from "./components/GraphVisualization";
 import QueryInterface from "./components/QueryInterface";
-import { Article, KnowledgeGraph, QueryResult, QueryAnswer, QueryResponse } from "./types/api.types";
+import { Article, KnowledgeGraph, QueryResult, QueryAnswer, QueryResponse, KGNode } from "./types/api.types";
 import { generateKG, enrichKG, queryKG } from "./services/api";
 import ArticlePanel from "./components/ArticlePanel";
 import HelpIcon from '@mui/icons-material/Help';
@@ -12,6 +12,57 @@ import HelpPanel from "./components/HelpPanel";
 import MenuIcon from '@mui/icons-material/Menu';
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
+import CloseIcon from '@mui/icons-material/Close';
+
+const NodeDetails: React.FC<{ node: KGNode }> = ({ node }) => {
+    return (
+        <Box sx={{ mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+                Node Details
+            </Typography>
+            <Typography variant="subtitle2" gutterBottom>
+                ID: {node.id}
+            </Typography>
+            <Typography variant="subtitle2" gutterBottom>
+                Type: {node.type}
+            </Typography>
+            <Typography variant="subtitle2" gutterBottom>
+                Summary: {node.summary}
+            </Typography>
+            {node.community !== null && (
+                <Typography variant="subtitle2" gutterBottom>
+                    Community: {node.community}
+                </Typography>
+            )}
+            {node.articles && node.articles.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                        Related Articles:
+                    </Typography>
+                    {node.articles.map((article: string, index: number) => (
+                        <Link
+                            key={index}
+                            href={article}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ 
+                                display: 'block', 
+                                mb: 0.5,
+                                color: 'primary.main',
+                                textDecoration: 'none',
+                                '&:hover': {
+                                    textDecoration: 'underline'
+                                }
+                            }}
+                        >
+                            Article {index + 1}
+                        </Link>
+                    ))}
+                </Box>
+            )}
+        </Box>
+    );
+};
 
 const App: React.FC = () => {
     const [kgData, setKgData] = useState<KnowledgeGraph | null>(null);
@@ -149,33 +200,40 @@ const App: React.FC = () => {
     };
 
     return (
-        <Container 
-            maxWidth="xl" 
-            sx={{
-                mt: 0,
-                pt: 10,
-                minHeight: "100vh",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "stretch"
-            }}
-            >
-            <Box sx={{ 
+        <Box sx={{
+            display: "flex",
+            minHeight: "100vh",
+            width: "100%",
+            bgcolor: "background.default",
+            position: "relative",
+            overflow: "hidden"
+        }}>
+            {/* Main Content Area */}
+            <Box sx={{
+                flexGrow: 1,
+                width: "100%",
+                height: "100vh",
                 transition: "margin-right 0.3s ease-in-out",
                 marginRight: isRightPanelOpen ? "400px" : 0,
-                width: "100%",
-                position: "relative"
+                display: "flex",
+                flexDirection: "column",
+                pt: 2,
+                px: 6,
+                overflow: "auto"
             }}>
+                {/* Header */}
                 <Box sx={{ 
                     display: "flex", 
                     justifyContent: "space-between", 
                     alignItems: "center",
-                    mb: 2
+                    mb: 2,
+                    pb: 2,
+                    borderBottom: 1,
+                    borderColor: "divider"
                 }}>
                     <IconButton 
                         onClick={() => setIsHelpOpen(true)}
                         size="small"
-                        sx={{ ml: 1 }}
                     >
                         <MenuIcon />
                     </IconButton>
@@ -185,12 +243,11 @@ const App: React.FC = () => {
                     <IconButton 
                         onClick={() => setIsRightPanelOpen(!isRightPanelOpen)}
                         size="small"
-                        sx={{ ml: 1 }}
                     >
-                        <KeyboardDoubleArrowRightIcon 
+                        <KeyboardDoubleArrowLeftIcon 
                             sx={{ 
-                                transform: isRightPanelOpen ? 'rotate(0deg)' : 'rotate(180deg)',
-                                transition: 'transform 0.3s'
+                                transform: isRightPanelOpen ? "rotate(180deg)" : "rotate(0deg)",
+                                transition: "transform 0.3s"
                             }}
                         />
                     </IconButton>
@@ -301,7 +358,7 @@ const App: React.FC = () => {
                     </Stack>
                     <Box sx={{ mt: 2, mb: 2 }}>
                         <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: "block" }}>
-                            Selected Nodes ({selectedNodes.size})
+                            Context Nodes ({selectedNodes.size})
                         </Typography>
                         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                             {Array.from(selectedNodes).map((nodeId) => (
@@ -430,7 +487,8 @@ const App: React.FC = () => {
                                 pt: 2,
                                 px: 2,
                                 transition: "transform 0.3s ease-in-out",
-                                transform: isRightPanelOpen ? "translateX(0)" : "translateX(100%)"
+                                transform: isRightPanelOpen ? "translateX(0)" : "translateX(100%)",
+                                overflowY: "auto"
                             }
                         }}
                     >
@@ -438,18 +496,62 @@ const App: React.FC = () => {
                             display: "flex", 
                             justifyContent: "space-between", 
                             alignItems: "center",
-                            mb: 2
+                            mb: 2,
+                            position: "sticky",
+                            top: 0,
+                            bgcolor: "background.paper",
+                            zIndex: 1,
+                            py: 1
                         }}>
                             <Typography variant="h6">
-                                Details
+                                Details {selectedNodes.size > 0 && `(${selectedNodes.size} selected)`}
                             </Typography>
-                            <IconButton 
-                                onClick={() => setIsRightPanelOpen(false)}
-                                size="small"
-                            >
-                                <KeyboardDoubleArrowRightIcon />
-                            </IconButton>
                         </Box>
+                        
+                        {kgData && Array.from(selectedNodes).map(nodeId => {
+                            const node = kgData.nodes.find(n => n.id === nodeId);
+                            if (!node) return null;
+                            return (
+                                <Box key={nodeId} sx={{ 
+                                    mb: 3,
+                                    pb: 3,
+                                    borderBottom: "1px solid",
+                                    borderColor: "divider"
+                                }}>
+                                    <Box sx={{ 
+                                        display: "flex", 
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        mb: 1
+                                    }}>
+                                        <Typography variant="h6" gutterBottom>
+                                            {node.id}
+                                        </Typography>
+                                        <IconButton 
+                                            size="small"
+                                            onClick={() => {
+                                                const newSelectedNodes = new Set(selectedNodes);
+                                                newSelectedNodes.delete(nodeId);
+                                                setSelectedNodes(newSelectedNodes);
+                                                if (selectedNodeId === nodeId) {
+                                                    setSelectedNodeId(null);
+                                                }
+                                            }}
+                                        >
+                                            <CloseIcon fontSize="small" />
+                                        </IconButton>
+                                    </Box>
+                                    <NodeDetails node={node} />
+                                </Box>
+                            );
+                        })}
+
+                        {selectedNodes.size === 0 && (
+                            <Typography color="text.secondary" sx={{ mt: 2 }}>
+                                No nodes selected. Click on nodes in the graph to view their details.
+                            </Typography>
+                        )}
+
                         <ArticlePanel
                             articles={getRelevantArticles(selectedNodeId)}
                             selectedNodeId={selectedNodeId}
@@ -462,7 +564,7 @@ const App: React.FC = () => {
                     </Drawer>
                 </Box>
             </Box>
-        </Container>
+        </Box>
     );
 };
 
