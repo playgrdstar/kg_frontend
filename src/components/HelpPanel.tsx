@@ -26,18 +26,30 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ open, onClose }) => {
             open={open}
             onClose={onClose}
             PaperProps={{
-                sx: { width: "400px", p: 2 }
+                sx: { 
+                    width: "400px",
+                    pt: 2,
+                    px: 6  // Increased padding
+                }
             }}
         >
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Box sx={{ 
+                display: "flex", 
+                justifyContent: "space-between", 
+                alignItems: "center", 
+                mb: 4,  // Increased margin
+                pb: 2,
+                borderBottom: 1,
+                borderColor: "divider"
+            }}>
                 <Typography variant="h6">How to Use</Typography>
                 <IconButton onClick={onClose} size="small">
                     <CloseIcon />
                 </IconButton>
             </Box>
             
-            <List>
-                <ListItem>
+            <List sx={{ px: 0 }}>  {/* Remove default List padding */}
+                <ListItem sx={{ mb: 3 }}>  {/* Added spacing between items */}
                     <ListItemIcon>
                         <LooksOneIcon color="primary" />
                     </ListItemIcon>
@@ -47,7 +59,7 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ open, onClose }) => {
                     />
                 </ListItem>
                 
-                <ListItem>
+                <ListItem sx={{ mb: 3 }}>
                     <ListItemIcon>
                         <LooksTwoIcon color="primary" />
                     </ListItemIcon>

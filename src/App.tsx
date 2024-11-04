@@ -8,11 +8,17 @@ import { Article, KnowledgeGraph, QueryResult, QueryAnswer, QueryResponse, KGNod
 import { generateKG, enrichKG, queryKG } from "./services/api";
 import ArticlePanel from "./components/ArticlePanel";
 import HelpIcon from '@mui/icons-material/Help';
-import HelpPanel from "./components/HelpPanel";
 import MenuIcon from '@mui/icons-material/Menu';
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
 import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
 import CloseIcon from '@mui/icons-material/Close';
+import LooksOneIcon from '@mui/icons-material/LooksOne';
+import LooksTwoIcon from '@mui/icons-material/LooksTwo';
+import Looks3Icon from '@mui/icons-material/Looks3';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
 
 const NodeDetails: React.FC<{ node: KGNode }> = ({ node }) => {
     return (
@@ -86,6 +92,7 @@ const App: React.FC = () => {
     const [queryResponse, setQueryResponse] = useState<QueryResponse | null>(null);
     const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
     const [isRightPanelOpen, setIsRightPanelOpen] = useState<boolean>(true);
+    const [isLeftPanelOpen, setIsLeftPanelOpen] = useState<boolean>(false);
 
     const getNodeLabel = (nodeId: string): string => {
         if (!kgData) return nodeId;
@@ -213,8 +220,9 @@ const App: React.FC = () => {
                 flexGrow: 1,
                 width: "100%",
                 height: "100vh",
-                transition: "margin-right 0.3s ease-in-out",
+                transition: "all 0.3s ease-in-out",
                 marginRight: isRightPanelOpen ? "400px" : 0,
+                marginLeft: isLeftPanelOpen ? "400px" : 0,
                 display: "flex",
                 flexDirection: "column",
                 pt: 2,
@@ -232,10 +240,15 @@ const App: React.FC = () => {
                     borderColor: "divider"
                 }}>
                     <IconButton 
-                        onClick={() => setIsHelpOpen(true)}
+                        onClick={() => setIsLeftPanelOpen(!isLeftPanelOpen)}
                         size="small"
                     >
-                        <MenuIcon />
+                        <KeyboardDoubleArrowLeftIcon 
+                            sx={{ 
+                                transform: isLeftPanelOpen ? "rotate(0deg)" : "rotate(180deg)",
+                                transition: "transform 0.3s"
+                            }}
+                        />
                     </IconButton>
                     <Typography variant="h6">
                         GRAPH & ASK
@@ -253,10 +266,74 @@ const App: React.FC = () => {
                     </IconButton>
                 </Box>
 
-                <HelpPanel 
-                    open={isHelpOpen}
-                    onClose={() => setIsHelpOpen(false)}
-                />
+                <Drawer
+                    anchor="left"
+                    open={isLeftPanelOpen}
+                    onClose={() => setIsLeftPanelOpen(false)}
+                    variant="persistent"
+                    PaperProps={{
+                        sx: {
+                            width: "400px",
+                            position: "fixed",
+                            height: "100%",
+                            top: 0,
+                            pt: 2,
+                            px: 2,
+                            transition: "transform 0.3s ease-in-out",
+                            transform: isLeftPanelOpen ? "translateX(0)" : "translateX(-100%)",
+                            overflowY: "auto",
+                            // borderRight: 1,
+                            // borderColor: "divider",
+                            // mr: 2
+                        }
+                    }}
+                >
+                    <Box sx={{ 
+                        display: "flex", 
+                        justifyContent: "space-between", 
+                        alignItems: "center",
+                        mb: 2,
+                        position: "sticky",
+                        top: 0,
+                        bgcolor: "background.paper",
+                        zIndex: 1,
+                        py: 1
+                    }}>
+                        <Typography variant="h6">How to Use</Typography>
+                    </Box>
+                    
+                    <List sx={{ px: 0 }}>
+                        <ListItem sx={{ mb: 3 }}>
+                            <ListItemIcon>
+                                <LooksOneIcon color="primary" />
+                            </ListItemIcon>
+                            <ListItemText 
+                                primary="Generate Knowledge Graph"
+                                secondary="Generate knowledge graphs from news articles. Use side panel to view news summaries and their associated knowledge graphs."
+                            />
+                        </ListItem>
+                        
+                        <ListItem sx={{ mb: 3 }}>
+                            <ListItemIcon>
+                                <LooksTwoIcon color="primary" />
+                            </ListItemIcon>
+                            <ListItemText 
+                                primary="Enrich Knowledge Graph"
+                                secondary="Enrich with semantic information and combine all knowledge graphs. Use side panel to see overall summary."
+                            />
+                        </ListItem>
+                        
+                        <ListItem>
+                            <ListItemIcon>
+                                <Looks3Icon color="primary" />
+                            </ListItemIcon>
+                            <ListItemText 
+                                primary="Query Knowledge Graph"
+                                secondary="Query the combined knowledge graph to retrieve relevant information, and generate answer."
+                            />
+                        </ListItem>
+                    </List>
+                </Drawer>
 
                 <Box sx={{ mb: 4 }}>
                     <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between' }}>
