@@ -318,7 +318,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         if (!cyRef.current) return;
         cyRef.current.fit(); // Fits and centers the graph
         cyRef.current.zoom({ // Optional: set a specific zoom level
-            level: 2.5,
+            level: 1.25,
             position: { x: 0, y: 0 }
         });
     };

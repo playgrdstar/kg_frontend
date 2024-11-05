@@ -1,16 +1,12 @@
 import React, { useState } from "react";
-import { Box, Stack, Container, Typography, TextField, Button, IconButton, Divider, CircularProgress, Drawer, Chip, Link } from "@mui/material";
+import { Box, Stack, Typography, TextField, Button, IconButton, Divider, CircularProgress, Drawer, Chip, Link } from "@mui/material";
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import AdjustIcon from '@mui/icons-material/Adjust';
 import GraphVisualization from "./components/GraphVisualization";
-import QueryInterface from "./components/QueryInterface";
-import { Article, KnowledgeGraph, QueryResult, QueryAnswer, QueryResponse, KGNode } from "./types/api.types";
+import { Article, KnowledgeGraph, QueryResponse, KGNode } from "./types/api.types";
 import { generateKG, enrichKG, queryKG } from "./services/api";
 import ArticlePanel from "./components/ArticlePanel";
-import HelpIcon from '@mui/icons-material/Help';
-import MenuIcon from '@mui/icons-material/Menu';
 import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
-import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
 import CloseIcon from '@mui/icons-material/Close';
 import LooksOneIcon from '@mui/icons-material/LooksOne';
 import LooksTwoIcon from '@mui/icons-material/LooksTwo';
@@ -22,13 +18,13 @@ import ListItemText from '@mui/material/ListItemText';
 
 const NodeDetails: React.FC<{ node: KGNode }> = ({ node }) => {
     return (
-        <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
+        <Box sx={{ mb: 1 }}>
+            {/* <Typography variant="h6" gutterBottom>
                 Node Details
-            </Typography>
-            <Typography variant="subtitle2" gutterBottom>
+            </Typography> */}
+            {/* <Typography variant="subtitle2" gutterBottom>
                 ID: {node.id}
-            </Typography>
+            </Typography> */}
             <Typography variant="subtitle2" gutterBottom>
                 Type: {node.type}
             </Typography>
@@ -45,23 +41,11 @@ const NodeDetails: React.FC<{ node: KGNode }> = ({ node }) => {
                     <Typography variant="subtitle2" gutterBottom>
                         Related Articles:
                     </Typography>
-                    {node.articles.map((article: string, index: number) => (
-                        <Link
-                            key={index}
-                            href={article}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            sx={{ 
-                                display: 'block', 
-                                mb: 0.5,
-                                color: 'primary.main',
-                                textDecoration: 'none',
-                                '&:hover': {
-                                    textDecoration: 'underline'
-                                }
-                            }}
-                        >
-                            Article {index + 1}
+                    {node.articles.map((article, index) => (
+                        <Link key={index} href={article} target="_blank" rel="noopener noreferrer" sx={{ display: 'block', mb: 1 }}>
+                            <Typography variant="body2" gutterBottom>
+                                {article}
+                            </Typography>
                         </Link>
                     ))}
                 </Box>
@@ -90,15 +74,14 @@ const App: React.FC = () => {
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
     const [queryResponse, setQueryResponse] = useState<QueryResponse | null>(null);
-    const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
     const [isRightPanelOpen, setIsRightPanelOpen] = useState<boolean>(true);
-    const [isLeftPanelOpen, setIsLeftPanelOpen] = useState<boolean>(false);
+    const [isLeftPanelOpen, setIsLeftPanelOpen] = useState<boolean>(true);
 
-    const getNodeLabel = (nodeId: string): string => {
-        if (!kgData) return nodeId;
-        const node = kgData.nodes.find(n => n.id === nodeId);
-        return nodeId;
-    };
+    // const getNodeLabel = (nodeId: string): string => {
+    //     if (!kgData) return nodeId;
+    //     const node = kgData.nodes.find(n => n.id === nodeId);
+    //     return nodeId;
+    // };
 
     const handleGenerateKG = async () => {
         if (!tickers.trim()) return;
@@ -206,6 +189,7 @@ const App: React.FC = () => {
         );
     };
 
+    /* Main components */
     return (
         <Box sx={{
             display: "flex",
@@ -226,7 +210,7 @@ const App: React.FC = () => {
                 display: "flex",
                 flexDirection: "column",
                 pt: 2,
-                px: 6,
+                px: 1,
                 overflow: "auto"
             }}>
                 {/* Header */}
@@ -300,6 +284,12 @@ const App: React.FC = () => {
                         py: 1
                     }}>
                         <Typography variant="h6">How to Use</Typography>
+                        <IconButton 
+                            onClick={() => setIsLeftPanelOpen(false)}
+                            size="small"
+                        >
+                            <CloseIcon fontSize="small" />
+                        </IconButton>
                     </Box>
                     
                     <List sx={{ px: 0 }}>
@@ -580,9 +570,15 @@ const App: React.FC = () => {
                             zIndex: 1,
                             py: 1
                         }}>
-                            <Typography variant="h6">
-                                Details {selectedNodes.size > 0 && `(${selectedNodes.size} selected)`}
+                            <Typography variant="subtitle2">
+                                {selectedNodes.size > 0 && `${selectedNodes.size} nodes in context`}
                             </Typography>
+                            <IconButton 
+                                onClick={() => setIsRightPanelOpen(false)}
+                                size="small"
+                            >
+                                <CloseIcon fontSize="small" />
+                            </IconButton>
                         </Box>
                         
                         {kgData && Array.from(selectedNodes).map(nodeId => {
@@ -590,19 +586,19 @@ const App: React.FC = () => {
                             if (!node) return null;
                             return (
                                 <Box key={nodeId} sx={{ 
-                                    mb: 3,
-                                    pb: 3,
+                                    mb: 1,
+                                    pb: 0,
                                     borderBottom: "1px solid",
-                                    borderColor: "divider"
+                                    borderColor: "lightgray"
                                 }}>
                                     <Box sx={{ 
                                         display: "flex", 
                                         justifyContent: "space-between",
                                         alignItems: "center",
-                                        mb: 1
+                                        mb: 0
                                     }}>
-                                        <Typography variant="h6" gutterBottom>
-                                            {node.id}
+                                        <Typography variant="subtitle2" gutterBottom>
+                                            <b>{node.id}</b>
                                         </Typography>
                                         <IconButton 
                                             size="small"
