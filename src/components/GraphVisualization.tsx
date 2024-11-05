@@ -82,8 +82,8 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                 data: {
                     id: node.id,
                     label: node.id,
-                    width: 30,
-                    height: 30,
+                    width: 15,
+                    height: 15,
                 }
             }));
 
@@ -130,8 +130,8 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                 data: {
                     id: node.id,
                     label: node.id,
-                    width: 30,
-                    height: 30,
+                    width: 15,
+                    height: 15,
                 }
             }));
         }
@@ -216,7 +216,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         });
 
         // Highlight edges connected to any selected node
-        cy.edges().style({ "opacity": 0.2 });
+        cy.edges().style({ "opacity": 0.5 });
         cy.edges().filter(edge => 
             newSelectedNodes.has(edge.source().id()) || 
             newSelectedNodes.has(edge.target().id())
@@ -255,10 +255,10 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                     'width': 1,
                     'line-color': '#ccc',
                     'target-arrow-color': '#ccc',
-                    'target-arrow-shape': 'triangle',
+                    'target-arrow-shape': 'none',
                     'curve-style': 'bezier',
                     'label': 'data(label)',
-                    'font-size': '8px',
+                    'font-size': '10px',
                     'text-rotation': 'autorotate',
                 }
             }
