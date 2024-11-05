@@ -138,15 +138,19 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
     };
 
     const handleNodeSelection = (nodeId: string, isMultiSelect: boolean = false) => {
+        if (!cyRef.current) return;
+        const cy = cyRef.current;
+
+        // Store current viewport position and zoom
+        const zoom = cy.zoom();
+        const pan = cy.pan();
+
         console.log("Node selected:", {
             nodeId,
             isMultiSelect,
             originalNode: data.nodes.find(n => n.id === nodeId)
         });
         
-        if (!cyRef.current) return;
-
-        const cy = cyRef.current;
         const selectedNode = data.nodes.find(n => n.id === nodeId);
         if (!selectedNode) return;
 
@@ -220,6 +224,12 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
 
         // Call onNodeClick with the latest selected node
         onNodeClick?.(nodeId, isMultiSelect);
+
+        // Restore viewport position and zoom after style updates
+        cy.viewport({
+            zoom: zoom,
+            pan: pan
+        });
     };
 
     const handleCyInit = (cy: Core): void => {

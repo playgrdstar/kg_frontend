@@ -399,51 +399,31 @@ const App: React.FC = () => {
                     </Stack>
                     <Divider sx={{ my: 2}} />
                     <Stack direction="row" spacing={1}>
-                    <TextField
-                        fullWidth
-                        label="Enter stock tickers (comma-separated)"
-                        value={tickers}
-                        onChange={(e) => setTickers(e.target.value)}
-                        margin="normal"
-                    />
-                    <TextField
-                        fullWidth
-                        label="Window"
-                        type="number"
-                        value={window}
-                        onChange={(e) => setWindow(Math.max(1, parseInt(e.target.value) || 1))}
-                        margin="normal"
-                    />
-                    <TextField
-                        fullWidth
-                        label="Limit"
-                        type="number"
-                        value={limit}
-                        onChange={(e) => setLimit(Math.max(1, parseInt(e.target.value) || 1))}
-                        margin="normal"
+                        <TextField
+                            fullWidth
+                            label="Enter stock tickers (comma-separated)"
+                            value={tickers}
+                            onChange={(e) => setTickers(e.target.value)}
+                            margin="normal"
+                        />
+                        <TextField
+                            fullWidth
+                            label="Window"
+                            type="number"
+                            value={window}
+                            onChange={(e) => setWindow(Math.max(1, parseInt(e.target.value) || 1))}
+                            margin="normal"
+                        />
+                        <TextField
+                            fullWidth
+                            label="Limit"
+                            type="number"
+                            value={limit}
+                            onChange={(e) => setLimit(Math.max(1, parseInt(e.target.value) || 1))}
+                            margin="normal"
                         />
                     </Stack>
-                    <Box sx={{ mt: 2, mb: 2 }}>
-                        <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: "block" }}>
-                            Context Nodes ({selectedNodes.size})
-                        </Typography>
-                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                            {Array.from(selectedNodes).map((nodeId) => (
-                                <Chip
-                                    key={nodeId}
-                                    // label={getNodeLabel(nodeId)}
-                                    label={nodeId}
-                                    onDelete={() => {
-                                        const newSelectedNodes = new Set(selectedNodes);
-                                        newSelectedNodes.delete(nodeId);
-                                        setSelectedNodes(newSelectedNodes);
-                                    }}
-                                    size="small"
-                                    sx={{ mb: 1 }}
-                                />
-                            ))}
-                        </Stack>
-                    </Box>
+
                     {completedSteps.enrich && (
                         <Box sx={{ mt: 4 }}>
                             <Stack direction="row" spacing={2} sx={{ width: "100%" }}>
@@ -481,6 +461,7 @@ const App: React.FC = () => {
                             </Stack>
                         </Box>
                     )}
+
                     {kgData && (
                         <Box sx={{ mt: 4 }}>
                             <Box sx={{ 
@@ -538,104 +519,126 @@ const App: React.FC = () => {
                                     )}
                                 </Box>
                             </Box>
-                        </Box>
-                    )}
-                    <Drawer
-                        anchor="right"
-                        open={isRightPanelOpen}
-                        onClose={() => setIsRightPanelOpen(false)}
-                        variant="persistent"
-                        PaperProps={{
-                            sx: {
-                                width: "400px",
-                                position: "fixed",
-                                height: "100%",
-                                top: 0,
-                                pt: 2,
-                                px: 2,
-                                transition: "transform 0.3s ease-in-out",
-                                transform: isRightPanelOpen ? "translateX(0)" : "translateX(100%)",
-                                overflowY: "auto"
-                            }
-                        }}
-                    >
-                        <Box sx={{ 
-                            display: "flex", 
-                            justifyContent: "space-between", 
-                            alignItems: "center",
-                            mb: 2,
-                            position: "sticky",
-                            top: 0,
-                            bgcolor: "background.paper",
-                            zIndex: 1,
-                            py: 1
-                        }}>
-                            <Typography variant="subtitle2">
-                                {selectedNodes.size > 0 && `${selectedNodes.size} nodes in context`}
-                            </Typography>
-                            <IconButton 
-                                onClick={() => setIsRightPanelOpen(false)}
-                                size="small"
-                            >
-                                <CloseIcon fontSize="small" />
-                            </IconButton>
-                        </Box>
-                        
-                        {kgData && Array.from(selectedNodes).map(nodeId => {
-                            const node = kgData.nodes.find(n => n.id === nodeId);
-                            if (!node) return null;
-                            return (
-                                <Box key={nodeId} sx={{ 
-                                    mb: 1,
-                                    pb: 0,
-                                    borderBottom: "1px solid",
-                                    borderColor: "lightgray"
-                                }}>
-                                    <Box sx={{ 
-                                        display: "flex", 
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        mb: 0
-                                    }}>
-                                        <Typography variant="subtitle2" gutterBottom>
-                                            <b>{node.id}</b>
-                                        </Typography>
-                                        <IconButton 
-                                            size="small"
-                                            onClick={() => {
+
+                            <Box sx={{ mt: 2, mb: 2 }}>
+                                <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: "block" }}>
+                                    Context Nodes ({selectedNodes.size})
+                                </Typography>
+                                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                                    {Array.from(selectedNodes).map((nodeId) => (
+                                        <Chip
+                                            key={nodeId}
+                                            label={nodeId}
+                                            onDelete={() => {
                                                 const newSelectedNodes = new Set(selectedNodes);
                                                 newSelectedNodes.delete(nodeId);
                                                 setSelectedNodes(newSelectedNodes);
-                                                if (selectedNodeId === nodeId) {
-                                                    setSelectedNodeId(null);
-                                                }
                                             }}
-                                        >
-                                            <CloseIcon fontSize="small" />
-                                        </IconButton>
-                                    </Box>
-                                    <NodeDetails node={node} />
-                                </Box>
-                            );
-                        })}
-
-                        {selectedNodes.size === 0 && (
-                            <Typography color="text.secondary" sx={{ mt: 2 }}>
-                                No nodes selected. Click on nodes in the graph to view their details.
-                            </Typography>
-                        )}
-
-                        <ArticlePanel
-                            articles={getRelevantArticles(selectedNodeId)}
-                            selectedNodeId={selectedNodeId}
-                            onClose={() => setSelectedNodeId(null)}
-                            kgSummary={kgData?.summary}
-                            isEnriched={completedSteps.enrich}
-                            queryResponse={queryResponse}
-                            currentQuery={query}
-                        />
-                    </Drawer>
+                                            size="small"
+                                            sx={{ mb: 1 }}
+                                        />
+                                    ))}
+                                </Stack>
+                            </Box>
+                        </Box>
+                    )}
                 </Box>
+
+                <Drawer
+                    anchor="right"
+                    open={isRightPanelOpen}
+                    onClose={() => setIsRightPanelOpen(false)}
+                    variant="persistent"
+                    PaperProps={{
+                        sx: {
+                            width: "400px",
+                            position: "fixed",
+                            height: "100%",
+                            top: 0,
+                            pt: 2,
+                            px: 2,
+                            transition: "transform 0.3s ease-in-out",
+                            transform: isRightPanelOpen ? "translateX(0)" : "translateX(100%)",
+                            overflowY: "auto"
+                        }
+                    }}
+                >
+                    <Box sx={{ 
+                        display: "flex", 
+                        justifyContent: "space-between", 
+                        alignItems: "center",
+                        mb: 2,
+                        position: "sticky",
+                        top: 0,
+                        bgcolor: "background.paper",
+                        zIndex: 1,
+                        py: 1
+                    }}>
+                        <Typography variant="subtitle2">
+                            {selectedNodes.size > 0 && `${selectedNodes.size} nodes in context`}
+                        </Typography>
+                        <IconButton 
+                            onClick={() => setIsRightPanelOpen(false)}
+                            size="small"
+                        >
+                            <CloseIcon fontSize="small" />
+                        </IconButton>
+                    </Box>
+                    
+                    {kgData && Array.from(selectedNodes).map(nodeId => {
+                        const node = kgData.nodes.find(n => n.id === nodeId);
+                        if (!node) return null;
+                        return (
+                            <Box key={nodeId} sx={{ 
+                                mb: 1,
+                                pb: 0,
+                                borderBottom: "1px solid",
+                                borderColor: "lightgray"
+                            }}>
+                                <Box sx={{ 
+                                    display: "flex", 
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    mb: 0
+                                }}>
+                                    <Typography variant="subtitle2" gutterBottom>
+                                        <b>{node.id}</b>
+                                    </Typography>
+                                    <IconButton 
+                                        size="small"
+                                        onClick={() => {
+                                            const newSelectedNodes = new Set(selectedNodes);
+                                            newSelectedNodes.delete(nodeId);
+                                            setSelectedNodes(newSelectedNodes);
+                                            if (selectedNodeId === nodeId) {
+                                                setSelectedNodeId(null);
+                                            }
+                                        }}
+                                    >
+                                        <CloseIcon fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                                <NodeDetails node={node} />
+                            </Box>
+                        );
+                    })}
+
+                    {selectedNodes.size === 0 && (
+                        <Typography color="text.secondary" sx={{ mt: 2 }}>
+                            No nodes selected. Click on nodes in the graph to view their details.
+                        </Typography>
+                    )}
+
+                    <ArticlePanel
+                        articles={getRelevantArticles(selectedNodeId)}
+                        selectedNodeId={selectedNodeId}
+                        onClose={() => setSelectedNodeId(null)}
+                        kgSummary={kgData?.summary}
+                        isEnriched={completedSteps.enrich}
+                        queryResponse={queryResponse}
+                        currentQuery={query}
+                    />
+                </Drawer>
             </Box>
         </Box>
     );
