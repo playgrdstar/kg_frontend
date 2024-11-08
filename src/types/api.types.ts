@@ -23,7 +23,7 @@ export interface KGEdge {
     source: string;
     target: string;
     label: string;
-    count: number;
+    weight?: number;
 }
 
 export interface KnowledgeGraph {

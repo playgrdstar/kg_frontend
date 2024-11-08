@@ -16,6 +16,16 @@ import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 
+type GenerationProgress = {
+    current: number;
+    total: number;
+} | null;
+
+interface StreamingUpdate {
+    nodes: Set<string>;
+    timestamp: number;
+}
+
 const NodeDetails: React.FC<{ node: KGNode }> = ({ node }) => {
     return (
         <Box sx={{ mb: 1 }}>
@@ -74,6 +84,9 @@ const App: React.FC = () => {
     const [queryResponse, setQueryResponse] = useState<QueryResponse | null>(null);
     const [isRightPanelOpen, setIsRightPanelOpen] = useState<boolean>(true);
     const [isLeftPanelOpen, setIsLeftPanelOpen] = useState<boolean>(true);
+    const [generationProgress, setGenerationProgress] = useState<GenerationProgress>(null);
+    const [eventSource, setEventSource] = useState<EventSource | null>(null);
+    const [streamingUpdates, setStreamingUpdates] = useState<StreamingUpdate | null>(null);
 
     // const getNodeLabel = (nodeId: string): string => {
     //     if (!kgData) return nodeId;
@@ -84,26 +97,136 @@ const App: React.FC = () => {
     const handleGenerateKG = async () => {
         if (!tickers.trim()) return;
         
-        setIsLoading(true);
-        console.log("Generating KG with parameters:", {
-            tickers,
-            window,
-            limit
-        });
-        
         try {
-            const response = await generateKG(tickers, window, limit);
-            console.log("Knowledge Graph Response:", response);
-            console.log("Nodes:", response.kg.nodes.length);
-            console.log("Edges:", response.kg.edges.length);
-            setKgData(response.kg);
-            setKgId(response.kg_id);
-            setSelectedNodes(new Set(response.kg.nodes.map(node => node.id)));
-            setCompletedSteps(prev => ({ ...prev, generate: true }));
+            setIsLoading(true);
+            setGenerationProgress(null);
+            setKgData(null);  // Reset existing KG data
+            
+            // Close existing EventSource if any
+            if (eventSource) {
+                eventSource.close();
+                setEventSource(null);
+            }
+
+            const params = new URLSearchParams({
+                tickers,
+                window: window.toString(),
+                limit: limit.toString()
+            });
+
+            const apiUrl = `http://localhost:8000/api/generate?${params.toString()}`;
+            console.log("[SSE] Connecting to:", apiUrl);
+
+            // Create new EventSource without initial fetch check
+            const newEventSource = new EventSource(apiUrl);
+            let reconnectAttempts = 0;
+            const MAX_RECONNECT_ATTEMPTS = 3;
+
+            newEventSource.onopen = () => {
+                console.log("[SSE] Connection established");
+                reconnectAttempts = 0;  // Reset reconnect attempts on successful connection
+            };
+
+            newEventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log("[SSE] Received message:", data);
+                    
+                    switch (data.type) {
+                        case "connection":
+                            console.log("[SSE] Connection confirmed");
+                            break;
+
+                        case "kg_update":
+                            if (data.progress) {
+                                setGenerationProgress(data.progress);
+                            }
+                            
+                            if (data.data && Array.isArray(data.data.nodes)) {
+                                try {
+                                    // Explicitly type the Set as string
+                                    const newNodeIds: Set<string> = new Set(
+                                        data.data.nodes
+                                            .filter((node: KGNode) => node && typeof node.id === "string")
+                                            .map((node: KGNode) => node.id)
+                                    );
+
+                                    console.log("Processing new nodes:", {
+                                        total: data.data.nodes.length,
+                                        valid: newNodeIds.size,
+                                        ids: Array.from(newNodeIds)
+                                    });
+
+                                    if (newNodeIds.size > 0) {
+                                        setStreamingUpdates({
+                                            nodes: newNodeIds,
+                                            timestamp: Date.now()
+                                        });
+                                    }
+
+                                    // Rest of your existing update logic...
+                                    setKgData(prevKG => ({
+                                        nodes: [...(prevKG?.nodes || []), ...data.data.nodes],
+                                        edges: [...(prevKG?.edges || []), ...data.data.edges],
+                                        articles: [...(prevKG?.articles || []), data.data.article],
+                                        summary: prevKG?.summary || ""
+                                    }));
+                                    setKgId(data.kg_id);
+                                } catch (error) {
+                                    console.error("Error processing streaming update:", error);
+                                }
+                            }
+                            break;
+
+                        case "complete":
+                            console.log("[SSE] Generation complete");
+                            setCompletedSteps(prev => ({ ...prev, generate: true }));
+                            setGenerationProgress(null);
+                            setIsLoading(false);
+                            newEventSource.close();
+                            setEventSource(null);
+                            break;
+
+                        case "error":
+                            console.error("[SSE] Server error:", data.message);
+                            setIsLoading(false);
+                            newEventSource.close();
+                            setEventSource(null);
+                            break;
+                    }
+                } catch (error) {
+                    console.error("[SSE] Message parsing error:", error);
+                }
+            };
+
+            newEventSource.onerror = (error) => {
+                console.error("[SSE] Connection error:", error);
+                
+                if (newEventSource.readyState === EventSource.CLOSED) {
+                    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                        reconnectAttempts++;
+                        console.log(`[SSE] Attempting to reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+                        setTimeout(() => {
+                            newEventSource.close();
+                            setEventSource(null);
+                            handleGenerateKG();
+                        }, 2000);
+                    } else {
+                        console.error("[SSE] Max reconnection attempts reached");
+                        setIsLoading(false);
+                        setGenerationProgress(null);
+                        newEventSource.close();
+                        setEventSource(null);
+                    }
+                }
+            };
+
+            setEventSource(newEventSource);
+
         } catch (error) {
-            console.error("Error generating KG:", error);
-        } finally {
+            console.error("[SSE] Setup error:", error);
             setIsLoading(false);
+            setGenerationProgress(null);
         }
     };
 
@@ -330,13 +453,21 @@ const App: React.FC = () => {
                                 onClick={handleGenerateKG} 
                                 disabled={isLoading}
                             >
-                            {completedSteps.generate ? <PanoramaFishEyeIcon /> : <AdjustIcon />}
+                                {completedSteps.generate ? <PanoramaFishEyeIcon /> : <AdjustIcon />}
                             </IconButton>
                             <Typography variant="caption" color="textSecondary">
-                                {isLoading ? "" : "Generate"}
+                                {isLoading ? (
+                                    generationProgress 
+                                        ? `Generating (${generationProgress.current}/${generationProgress.total})`
+                                        : "Generating..."
+                                ) : "Generate"}
                             </Typography>
                             {isLoading && (
                                 <CircularProgress
+                                    variant={generationProgress ? "determinate" : "indeterminate"}
+                                    value={generationProgress 
+                                        ? (generationProgress.current / generationProgress.total) * 100 
+                                        : undefined}
                                     size={24}
                                     sx={{
                                         position: "absolute",
