@@ -87,6 +87,7 @@ const App: React.FC = () => {
     const [generationProgress, setGenerationProgress] = useState<GenerationProgress>(null);
     const [eventSource, setEventSource] = useState<EventSource | null>(null);
     const [streamingUpdates, setStreamingUpdates] = useState<StreamingUpdate | null>(null);
+    const [kgIds, setKgIds] = useState<string[]>([]);
 
     const handleGenerateKG = async () => {
         if (!tickers.trim()) return;
@@ -133,14 +134,38 @@ const App: React.FC = () => {
 
                         case "kg_update":
                             if (data.data && Array.isArray(data.data.nodes)) {
-                                // Use functional update to ensure we have latest state
+                                const currentKgId = data.kg_id;
+                                
+                                if (currentKgId) {
+                                    setKgIds((prevIds) => {
+                                        console.log("[App] Updating KG IDs:", {
+                                            currentId: currentKgId,
+                                            prevIds: prevIds,
+                                        });
+                                        
+                                        if (!prevIds.includes(currentKgId)) {
+                                            const newIds = [...prevIds, currentKgId];
+                                            console.log("[App] Added new KG ID, updated list:", newIds);
+                                            return newIds;
+                                        }
+                                        return prevIds;
+                                    });
+
+                                    setKgId((prevId) => {
+                                        console.log("[App] Updating current KG ID:", {
+                                            prevId: prevId,
+                                            newId: currentKgId
+                                        });
+                                        return currentKgId;
+                                    });
+                                }
+
                                 setKgData(prevKG => {
                                     const newKgData = {
                                         nodes: [...(prevKG?.nodes || []), ...data.data.nodes],
                                         edges: [...(prevKG?.edges || []), ...data.data.edges],
                                         articles: [...(prevKG?.articles || []), data.data.article],
                                         summary: prevKG?.summary || "",
-                                        // Add updateId to force re-render
                                         updateId: Date.now()
                                     };
                                     
@@ -148,9 +173,10 @@ const App: React.FC = () => {
                                         timestamp: new Date().toISOString(),
                                         prevNodes: prevKG?.nodes.length || 0,
                                         newNodes: newKgData.nodes.length,
-                                        updateId: newKgData.updateId
+                                        updateId: newKgData.updateId,
+                                        kgId: data.kg_id  // Log KG ID for debugging
                                     });
-                                    
+
                                     return newKgData;
                                 });
                             }
@@ -158,6 +184,11 @@ const App: React.FC = () => {
 
                         case "complete":
                             console.log("[SSE] Generation complete");
+                            if (data.data.kg_id) {
+                                setKgId(data.data.kg_id);
+                                setKgIds(prev => [...prev, data.data.kg_id]);
+                                console.log("[App] Set KG ID:", data.data.kg_id);
+                            }
                             setCompletedSteps(prev => ({ ...prev, generate: true }));
                             setGenerationProgress(null);
                             setIsLoading(false);
@@ -214,16 +245,16 @@ const App: React.FC = () => {
     };
 
     const handleEnrichKG = async (): Promise<void> => {
-        if (!kgId) {
-            console.warn("No knowledge graph ID available for enrichment");
+        if (kgIds.length === 0) {
+            console.warn("No knowledge graph IDs available for enrichment");
             return;
         }
 
         setIsLoading(true);
-        console.log("Enriching KG with ID:", kgId);
+        console.log("Enriching KGs with IDs:", kgIds);
         
         try {
-            const response = await enrichKG([kgId]);
+            const response = await enrichKG(kgIds);
             console.log("Enriched Knowledge Graph Response:", response);
             console.log("Enriched Nodes:", response.kg.nodes.length);
             console.log("Enriched Edges:", response.kg.edges.length);
@@ -233,7 +264,7 @@ const App: React.FC = () => {
             setSelectedNodes(new Set(response.kg.nodes.map(node => node.id)));
             setCompletedSteps(prev => ({ ...prev, enrich: true }));
         } catch (error) {
-            console.error("Error enriching KG:", error);
+            console.error("Error enriching KGs:", error);
         } finally {
             setIsLoading(false);
         }
@@ -244,6 +275,7 @@ const App: React.FC = () => {
         
         setIsLoading(true);
         try {
+            console.log("Querying KG with ID:", kgId);
             // Use all nodes if none are explicitly selected
             const nodesToQuery = selectedNodes.size > 0 
                 ? Array.from(selectedNodes)
