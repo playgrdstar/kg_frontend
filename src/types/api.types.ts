@@ -31,6 +31,7 @@ export interface KnowledgeGraph {
     edges: KGEdge[];
     articles: Article[];
     summary: string;
+    updateId?: number;
 }
 
 export interface KnowledgeGraphResponse {

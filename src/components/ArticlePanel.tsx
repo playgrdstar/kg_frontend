@@ -18,6 +18,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import CircleIcon from '@mui/icons-material/Circle';
 import LinkIcon from '@mui/icons-material/Link';
 import { QueryResponse } from "../types/api.types";
+import { decodeHtmlEntities } from '../utils/string';
 
 interface Article {
     title: string;
@@ -149,10 +150,10 @@ const ArticlePanel: React.FC<ArticlePanelProps> = ({
                             {index > 0 && <Divider sx={{ my: 2 }} />}
                             <ListItem sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
                                 <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                                    {article.title}
+                                    {decodeHtmlEntities(article.title)}
                                 </Typography>
                                 <Typography variant="body2" sx={{ mb: 1 }}>
-                                    {article.summary}
+                                    {decodeHtmlEntities(article.summary)}
                                 </Typography>
                                 <Link
                                     href={article.url}

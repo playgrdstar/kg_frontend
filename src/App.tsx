@@ -88,12 +88,6 @@ const App: React.FC = () => {
     const [eventSource, setEventSource] = useState<EventSource | null>(null);
     const [streamingUpdates, setStreamingUpdates] = useState<StreamingUpdate | null>(null);
 
-    // const getNodeLabel = (nodeId: string): string => {
-    //     if (!kgData) return nodeId;
-    //     const node = kgData.nodes.find(n => n.id === nodeId);
-    //     return nodeId;
-    // };
-
     const handleGenerateKG = async () => {
         if (!tickers.trim()) return;
         
@@ -138,43 +132,27 @@ const App: React.FC = () => {
                             break;
 
                         case "kg_update":
-                            if (data.progress) {
-                                setGenerationProgress(data.progress);
-                            }
-                            
                             if (data.data && Array.isArray(data.data.nodes)) {
-                                try {
-                                    // Explicitly type the Set as string
-                                    const newNodeIds: Set<string> = new Set(
-                                        data.data.nodes
-                                            .filter((node: KGNode) => node && typeof node.id === "string")
-                                            .map((node: KGNode) => node.id)
-                                    );
-
-                                    console.log("Processing new nodes:", {
-                                        total: data.data.nodes.length,
-                                        valid: newNodeIds.size,
-                                        ids: Array.from(newNodeIds)
-                                    });
-
-                                    if (newNodeIds.size > 0) {
-                                        setStreamingUpdates({
-                                            nodes: newNodeIds,
-                                            timestamp: Date.now()
-                                        });
-                                    }
-
-                                    // Rest of your existing update logic...
-                                    setKgData(prevKG => ({
+                                // Use functional update to ensure we have latest state
+                                setKgData(prevKG => {
+                                    const newKgData = {
                                         nodes: [...(prevKG?.nodes || []), ...data.data.nodes],
                                         edges: [...(prevKG?.edges || []), ...data.data.edges],
                                         articles: [...(prevKG?.articles || []), data.data.article],
-                                        summary: prevKG?.summary || ""
-                                    }));
-                                    setKgId(data.kg_id);
-                                } catch (error) {
-                                    console.error("Error processing streaming update:", error);
-                                }
+                                        summary: prevKG?.summary || "",
+                                        // Add updateId to force re-render
+                                        updateId: Date.now()
+                                    };
+                                    
+                                    console.log("[App] Setting new KG state:", {
+                                        timestamp: new Date().toISOString(),
+                                        prevNodes: prevKG?.nodes.length || 0,
+                                        newNodes: newKgData.nodes.length,
+                                        updateId: newKgData.updateId
+                                    });
+                                    
+                                    return newKgData;
+                                });
                             }
                             break;
 
@@ -599,53 +577,35 @@ const App: React.FC = () => {
                             }}>
                                 <Box sx={{ 
                                     flex: 1,
-                                    border: "1px solid #ddd",
-                                    borderRadius: "8px",
-                                    overflow: "hidden",
-                                    position: "relative"
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    height: "100%",
+                                    overflow: "hidden"
                                 }}>
-                                    {isLoading ? (
-                                        <Box sx={{
-                                            position: "absolute",
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            bottom: 0,
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            backgroundColor: "rgba(255, 255, 255, 0.7)"
-                                        }}>
-                                            <CircularProgress />
-                                        </Box>
-                                    ) : (
-                                        <GraphVisualization 
-                                            data={kgData} 
-                                            selectedNodes={selectedNodes.size > 0 ? selectedNodes : new Set(kgData.nodes.map(node => node.id))}
-                                            onNodeClick={(nodeId: string, isMultiSelect?: boolean) => {
-                                                console.log("Node clicked:", nodeId);
-                                                if (isMultiSelect) {
-                                                    const newSelectedNodes = new Set(selectedNodes);
-                                                    if (newSelectedNodes.has(nodeId)) {
-                                                        newSelectedNodes.delete(nodeId);
-                                                        setSelectedNodeId(null);
-                                                    } else {
-                                                        newSelectedNodes.add(nodeId);
-                                                        setSelectedNodeId(nodeId);
-                                                    }
-                                                    setSelectedNodes(newSelectedNodes);
+                                    <GraphVisualization 
+                                        data={kgData}
+                                        selectedNodes={selectedNodes}
+                                        onNodeClick={(nodeId: string, isMultiSelect?: boolean) => {
+                                            if (isMultiSelect) {
+                                                const newSelectedNodes = new Set(selectedNodes);
+                                                if (newSelectedNodes.has(nodeId)) {
+                                                    newSelectedNodes.delete(nodeId);
+                                                    setSelectedNodeId(null);
                                                 } else {
-                                                    setSelectedNodes(new Set([nodeId]));
+                                                    newSelectedNodes.add(nodeId);
                                                     setSelectedNodeId(nodeId);
                                                 }
-                                            }}
-                                            onSelectionClear={() => {
-                                                setSelectedNodes(new Set());
-                                                setSelectedNodeId(null);
-                                            }}
-                                        />
-                                    )}
-
+                                                setSelectedNodes(newSelectedNodes);
+                                            } else {
+                                                setSelectedNodes(new Set([nodeId]));
+                                                setSelectedNodeId(nodeId);
+                                            }
+                                        }}
+                                        onSelectionClear={() => {
+                                            setSelectedNodes(new Set());
+                                            setSelectedNodeId(null);
+                                        }}
+                                    />
                                 </Box>
                             </Box>
                                 <Box sx={{ mt: 2, mb: 2 }}>

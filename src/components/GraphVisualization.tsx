@@ -29,6 +29,9 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
     const [networkThreshold, setNetworkThreshold] = useState<number>(0.8);
     const [textThreshold, setTextThreshold] = useState<number>(0.8);
 
+    // Add ref to track previous data for diffing
+    const prevDataRef = useRef<KnowledgeGraph | null>(null);
+
     // Update getSimilarNodes to use separate thresholds
     const getSimilarNodes = (node: KGNode, nodes: KGNode[]) => {
         if (!node.network_embedding || !node.text_embedding) return new Set<string>();
@@ -333,12 +336,94 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         });
     };
 
-    // Add this useEffect to log data changes
+    // Optimize the update effect
     useEffect(() => {
-        console.debug("Graph data changed:", {
-            nodes: data.nodes.map(n => n.id),
-            edges: data.edges.map(e => ({ source: e.source, target: e.target }))
+        console.log("[GraphViz] Data changed:", {
+            timestamp: new Date().toISOString(),
+            nodeCount: data.nodes.length,
+            edgeCount: data.edges.length
         });
+
+        if (!cyRef.current) return;
+
+        const cy = cyRef.current;
+        const prevData = prevDataRef.current;
+        
+        // Step 1: Add all new nodes first
+        const newNodes = data.nodes.filter(node => 
+            !prevData?.nodes.some(n => n.id === node.id)
+        );
+
+        if (newNodes.length > 0) {
+            const nodeElements = newNodes.map(node => ({
+                data: {
+                    id: node.id,
+                    label: node.id,
+                    width: 15,
+                    height: 15,
+                }
+            }));
+            cy.add(nodeElements);
+        }
+
+        // Step 2: After nodes are added, process edges
+        const existingNodeIds = new Set(cy.nodes().map(n => n.id()));
+        const validNewEdges = data.edges.filter(edge => 
+            !prevData?.edges.some(e => 
+                e.source === edge.source && e.target === edge.target
+            ) &&
+            existingNodeIds.has(edge.source) && 
+            existingNodeIds.has(edge.target)
+        );
+
+        if (validNewEdges.length > 0) {
+            const edgeElements = validNewEdges.map(edge => ({
+                data: {
+                    id: `${edge.source}-${edge.target}`,
+                    source: edge.source,
+                    target: edge.target,
+                    label: edge.label
+                }
+            }));
+            cy.add(edgeElements);
+        }
+
+        // Step 3: Remove obsolete elements
+        if (prevData) {
+            // Remove obsolete edges first
+            const removedEdges = prevData.edges.filter(edge => 
+                !data.edges.some(e => 
+                    e.source === edge.source && e.target === edge.target
+                )
+            );
+            
+            removedEdges.forEach(edge => {
+                cy.$(`edge[source = "${edge.source}"][target = "${edge.target}"]`).remove();
+            });
+
+            // Then remove obsolete nodes
+            const removedNodeIds = prevData.nodes
+                .filter(node => !data.nodes.some(n => n.id === node.id))
+                .map(node => node.id);
+            
+            if (removedNodeIds.length > 0) {
+                cy.nodes(`[id = "${removedNodeIds.join('"], [id = "')}"]`).remove();
+            }
+        }
+
+        // Step 4: Only run layout if there were changes
+        if (newNodes.length > 0 || validNewEdges.length > 0) {
+            cy.layout({ 
+                name: "cose", 
+                animate: false,
+                randomize: false,
+                componentSpacing: 40,
+                nodeRepulsion: () => 400000
+            }).run();
+        }
+
+        // Update reference to current data
+        prevDataRef.current = data;
     }, [data]);
 
     // Wrap the render in try-catch
