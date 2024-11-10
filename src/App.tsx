@@ -798,6 +798,7 @@ const App: React.FC = () => {
                                             setSelectedNodes(new Set());
                                             setSelectedNodeId(null);
                                         }}
+                                        completedSteps={completedSteps}
                                     />
                                 </Box>
                             </Box>

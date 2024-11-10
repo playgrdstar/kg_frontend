@@ -17,6 +17,9 @@ interface GraphVisualizationProps {
     selectedNodes: Set<string>;
     onNodeClick: (nodeId: string, isMultiSelect?: boolean) => void;
     onSelectionClear: () => void;
+    completedSteps: {
+        enrich: boolean;
+    };
 }
 
 const GraphVisualization: React.FC<GraphVisualizationProps> = ({
@@ -24,6 +27,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
     selectedNodes,
     onNodeClick,
     onSelectionClear,
+    completedSteps,
 }) => {
     const cyRef = useRef<Core | null>(null);
     const [networkThreshold, setNetworkThreshold] = useState<number>(0.8);
@@ -434,6 +438,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
             <Box>
                 <Stack spacing={1} sx={{ mt: 2, mb: 2, ml: 4, mr: 4 }}>
                     {/* Network Similarity Slider */}
+                    {completedSteps.enrich && (
                     <Box sx={{ 
                         display: "flex", 
                         alignItems: "center", 
@@ -459,7 +464,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                             min={0}
                             max={1}
                             step={0.1}
-                            valueLabelDisplay="auto"
+                            valueLabelDisplay="off"
                             sx={{ 
                                 flex: 1,
                                 '& .MuiSlider-thumb': {
@@ -476,10 +481,12 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                         <Typography variant="body2" sx={{ minWidth: "40px", textAlign: "right" }}>
                             {networkThreshold.toFixed(2)}
                         </Typography>
-                    </Box>
+                        </Box>
+                    )}
 
                     {/* Text Similarity Slider */}
-                    <Box sx={{ 
+                    {completedSteps.enrich && (
+                        <Box sx={{ 
                         display: "flex", 
                         alignItems: "center", 
                         gap: 1
@@ -504,7 +511,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                             min={0}
                             max={1}
                             step={0.1}
-                            valueLabelDisplay="auto"
+                            valueLabelDisplay="off"
                             sx={{ 
                                 flex: 1,
                                 '& .MuiSlider-thumb': {
@@ -520,8 +527,9 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                         />
                         <Typography variant="body2" sx={{ minWidth: "40px", textAlign: "right" }}>
                             {textThreshold.toFixed(2)}
-                        </Typography>
-                    </Box>
+                            </Typography>
+                        </Box>
+                    )}
                 </Stack>
 
                 <Box sx={{ 
