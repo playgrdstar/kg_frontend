@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Stack, Typography, TextField, Button, IconButton, Divider, CircularProgress, Drawer, Chip, Link } from "@mui/material";
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import AdjustIcon from '@mui/icons-material/Adjust';
@@ -15,6 +15,8 @@ import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
+import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 
 type GenerationProgress = {
     current: number;
@@ -62,6 +64,31 @@ const NodeDetails: React.FC<{ node: KGNode }> = ({ node }) => {
     );
 };
 
+// Debounce function
+const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+
+    return debouncedValue;
+};
+
+const MemoizedGraphVisualization = React.memo(GraphVisualization, (prevProps, nextProps) => {
+    // Only re-render if these props change
+    return (
+        prevProps.data.updateId === nextProps.data.updateId &&
+        prevProps.selectedNodes === nextProps.selectedNodes
+    );
+});
+
 const App: React.FC = () => {
     const [kgData, setKgData] = useState<KnowledgeGraph | null>(null);
     const [kgId, setKgId] = useState<string | null>(null);
@@ -79,6 +106,7 @@ const App: React.FC = () => {
         query: false,
     });
     const [query, setQuery] = useState<string>("");
+    
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [selectedNodes, setSelectedNodes] = useState<Set<string>>(new Set());
     const [queryResponse, setQueryResponse] = useState<QueryResponse | null>(null);
@@ -88,6 +116,10 @@ const App: React.FC = () => {
     const [eventSource, setEventSource] = useState<EventSource | null>(null);
     const [streamingUpdates, setStreamingUpdates] = useState<StreamingUpdate | null>(null);
     const [kgIds, setKgIds] = useState<string[]>([]);
+    
+
+    const [localQuery, setLocalQuery] = useState<string>("");
+    const debouncedQuery = useDebounce(localQuery, 500);
 
     const handleGenerateKG = async () => {
         if (!tickers.trim()) return;
@@ -271,7 +303,7 @@ const App: React.FC = () => {
     };
 
     const handleQuerySubmit = async () => {
-        if (!kgId || !query.trim() || !kgData) return;
+        if (!kgId || !debouncedQuery.trim() || !kgData) return;
         
         setIsLoading(true);
         try {
@@ -283,7 +315,7 @@ const App: React.FC = () => {
 
             const result = await queryKG(
                 kgId,
-                query,
+                debouncedQuery,
                 5,
                 1,
                 nodesToQuery
@@ -569,8 +601,8 @@ const App: React.FC = () => {
                                 <TextField
                                     fullWidth
                                     label="Enter your query"
-                                    value={query}
-                                    onChange={(e) => setQuery(e.target.value)}
+                                    value={localQuery}
+                                    onChange={(e) => setLocalQuery(e.target.value)}
                                     placeholder="Ask a question about the knowledge graph..."
                                     multiline
                                     rows={1}
@@ -584,7 +616,7 @@ const App: React.FC = () => {
                                 <Button
                                     variant="contained"
                                     onClick={handleQuerySubmit}
-                                    disabled={isLoading || !query.trim()}
+                                    disabled={isLoading || !localQuery.trim()}
                                     sx={{
                                         height: "56px",
                                         alignSelf: "flex-end",
@@ -614,7 +646,7 @@ const App: React.FC = () => {
                                     height: "100%",
                                     overflow: "hidden"
                                 }}>
-                                    <GraphVisualization 
+                                    <MemoizedGraphVisualization 
                                         data={kgData}
                                         selectedNodes={selectedNodes}
                                         onNodeClick={(nodeId: string, isMultiSelect?: boolean) => {
@@ -641,9 +673,44 @@ const App: React.FC = () => {
                                 </Box>
                             </Box>
                                 <Box sx={{ mt: 2, mb: 2 }}>
+                                <Box sx={{ 
+                                    display: "flex", 
+                                    justifyContent: "space-between", 
+                                    alignItems: "center",
+                                    mb: 1
+                                }}>
                                     <Typography variant="caption" color="textSecondary" sx={{ mb: 1, display: "block" }}>
                                         Context Nodes ({selectedNodes.size})
                                     </Typography>
+                                    <Box>
+                                    {selectedNodes.size > 0 && (
+                                            <Button 
+                                                size="small" 
+                                                variant="text" 
+                                                color="primary"
+                                                onClick={() => {
+                                                    setSelectedNodes(new Set());
+                                                    setSelectedNodeId(null);
+                                                }}
+                                                startIcon={<RemoveCircleIcon fontSize="small" />}
+                                            >
+                                                Clear All
+                                            </Button>
+                                        )}
+                                        <Button 
+                                            size="small" 
+                                            variant="text" 
+                                            color="primary"
+                                            onClick={() => {
+                                                const allNodeIds = kgData?.nodes.map(node => node.id) || [];
+                                                setSelectedNodes(new Set(allNodeIds));
+                                            }}
+                                            startIcon={<AddCircleIcon fontSize="small" />} 
+                                        >
+                                            Select All
+                                            </Button>
+                                        </Box>
+                                    </Box>
                                     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                                         {Array.from(selectedNodes).map((nodeId) => (
                                             <Chip
