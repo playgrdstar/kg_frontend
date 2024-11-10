@@ -17,6 +17,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
+import Tooltip from "@mui/material/Tooltip";
 
 type GenerationProgress = {
     current: number;
@@ -120,6 +121,9 @@ const App: React.FC = () => {
 
     const [localQuery, setLocalQuery] = useState<string>("");
     const debouncedQuery = useDebounce(localQuery, 500);
+
+    const [topN, setTopN] = useState<number>(5); // State for top N
+    const [numHops, setNumHops] = useState<number>(1); // State for number of hops
 
     const handleGenerateKG = async () => {
         if (!tickers.trim()) return;
@@ -308,7 +312,6 @@ const App: React.FC = () => {
         setIsLoading(true);
         try {
             console.log("Querying KG with ID:", kgId);
-            // Use all nodes if none are explicitly selected
             const nodesToQuery = selectedNodes.size > 0 
                 ? Array.from(selectedNodes)
                 : kgData.nodes.map(node => node.id);
@@ -316,8 +319,8 @@ const App: React.FC = () => {
             const result = await queryKG(
                 kgId,
                 debouncedQuery,
-                5,
-                1,
+                topN, // Use top N parameter
+                numHops, // Use number of hops parameter
                 nodesToQuery
             );
             handleQueryResult(result);
@@ -613,6 +616,22 @@ const App: React.FC = () => {
                                         }
                                     }}
                                 />
+                                <TextField
+                                    label="Top N"
+                                    type="number"
+                                    value={topN}
+                                    onChange={(e) => setTopN(Math.max(1, parseInt(e.target.value) || 1))}
+                                    margin="normal"
+                                    sx={{ width: "150px" }} // Adjust width as needed
+                                />
+                                <TextField
+                                    label="Hops"
+                                    type="number"
+                                    value={numHops}
+                                    onChange={(e) => setNumHops(Math.max(1, parseInt(e.target.value) || 1))}
+                                    margin="normal"
+                                    sx={{ width: "150px" }} // Adjust width as needed
+                                />
                                 <Button
                                     variant="contained"
                                     onClick={handleQuerySubmit}
@@ -712,20 +731,38 @@ const App: React.FC = () => {
                                         </Box>
                                     </Box>
                                     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                                        {Array.from(selectedNodes).map((nodeId) => (
-                                            <Chip
-                                                key={nodeId}
-                                                // label={getNodeLabel(nodeId)}
-                                                label={nodeId}
-                                                onDelete={() => {
-                                                    const newSelectedNodes = new Set(selectedNodes);
-                                                    newSelectedNodes.delete(nodeId);
-                                                    setSelectedNodes(newSelectedNodes);
-                                                }}
-                                                size="small"
-                                                sx={{ mb: 1 }}
-                                            />
-                                        ))}
+                                        {Array.from(selectedNodes).map((nodeId) => {
+                                            const node = kgData?.nodes.find(n => n.id === nodeId);
+                                            // const tooltipTitle = node ? `Type: ${node.type}Summary: ${node.summary}` : "";
+
+                                            return (
+                                                <Tooltip title={
+                                                    <React.Fragment>
+                                                        <div>Type: {node?.type}</div>
+                                                        <div>Summary: {node?.summary}</div>
+                                                    </React.Fragment>
+                                                } key={nodeId}
+                                                PopperProps={{
+                                                    sx: {
+                                                        '& div': {
+                                                            padding: "4px"
+                                                        }
+                                                    }
+                                                }}  
+                                                >
+                                                    <Chip
+                                                        label={nodeId}
+                                                        onDelete={() => {
+                                                            const newSelectedNodes = new Set(selectedNodes);
+                                                            newSelectedNodes.delete(nodeId);
+                                                            setSelectedNodes(newSelectedNodes);
+                                                        }}
+                                                        size="small"
+                                                        sx={{ mb: 1 }}
+                                                    />
+                                                </Tooltip>
+                                            );
+                                        })}
                                     </Stack>
                                 </Box>
                         </Box>
