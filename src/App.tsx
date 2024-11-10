@@ -255,7 +255,7 @@ const App: React.FC = () => {
                             newEventSource.close();
                             setEventSource(null);
                             handleGenerateKG();
-                        }, 2000);
+                        }, 3000);
                     } else {
                         console.error("[SSE] Max reconnection attempts reached");
                         setIsLoading(false);
@@ -493,6 +493,7 @@ const App: React.FC = () => {
 
                 <Box sx={{ mb: 4 }}>
                     <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between' }}>
+                        {/* Generate Button */}
                         <Stack direction="column" alignItems="center" position="relative">
                             <IconButton 
                                 onClick={handleGenerateKG} 
@@ -500,30 +501,35 @@ const App: React.FC = () => {
                             >
                                 {completedSteps.generate ? <PanoramaFishEyeIcon /> : <AdjustIcon />}
                             </IconButton>
-                            <Typography variant="caption" color="textSecondary">
+                            <Typography variant="caption" color="textSecondary" align="center">
                                 {isLoading ? (
                                     generationProgress 
                                         ? `Generating (${generationProgress.current}/${generationProgress.total})`
-                                        : "Generating..."
+                                        : "..."
                                 ) : "Generate"}
                             </Typography>
                             {isLoading && (
-                                <CircularProgress
-                                    variant={generationProgress ? "determinate" : "indeterminate"}
-                                    value={generationProgress 
-                                        ? (generationProgress.current / generationProgress.total) * 100 
-                                        : undefined}
-                                    size={24}
-                                    sx={{
-                                        position: "absolute",
-                                        top: "50%",
-                                        left: "50%",
-                                        marginTop: "-12px",
-                                        marginLeft: "-12px"
-                                    }}
-                                />
+                                <Box sx={{
+                                    position: "absolute",
+                                    top: "50%",
+                                    left: "50%",
+                                    transform: "translate(-50%, -100%)",
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}>
+                                    <CircularProgress
+                                        variant={generationProgress ? "determinate" : "indeterminate"}
+                                        value={generationProgress 
+                                            ? (generationProgress.current / generationProgress.total) * 100 
+                                            : undefined}
+                                        size={20}
+                                    />
+                                </Box>
                             )}
                         </Stack>
+
+                        {/* Enrich Button */}
                         <Stack direction="column" alignItems="center" position="relative">
                             <IconButton 
                                 onClick={handleEnrichKG} 
@@ -531,43 +537,67 @@ const App: React.FC = () => {
                             >
                                 {completedSteps.enrich ? <PanoramaFishEyeIcon /> : <AdjustIcon />}
                             </IconButton>
-                            <Typography variant="caption" color="textSecondary">
-                                {isLoading ? "" : "Enrich"}
+                            <Typography variant="caption" color="textSecondary" align="center">
+                                {isLoading ? (
+                                    generationProgress 
+                                        ? `Enriching (${generationProgress.current}/${generationProgress.total})`
+                                        : "..."
+                                ) : "Enrich"}
                             </Typography>
                             {isLoading && (
-                                <CircularProgress
-                                    size={24}
-                                    sx={{
-                                        position: "absolute",
-                                        top: "50%",
-                                        left: "50%",
-                                        marginTop: "-12px",
-                                        marginLeft: "-12px"
-                                    }}
-                                />
+                                <Box sx={{
+                                    position: "absolute",
+                                    top: "50%",
+                                    left: "50%",
+                                    transform: "translate(-50%, -100%)",
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}>
+                                    <CircularProgress
+                                        variant={generationProgress ? "determinate" : "indeterminate"}
+                                        value={generationProgress 
+                                            ? (generationProgress.current / generationProgress.total) * 100 
+                                            : undefined}
+                                        size={20}
+                                    />
+                                </Box>
                             )}
                         </Stack>
+
+                        {/* Query Button */}
                         <Stack direction="column" alignItems="center" position="relative">
                             <IconButton 
-                                onClick={() => console.log("Query button clicked")} 
+                                onClick={handleQuerySubmit} 
                                 disabled={isLoading || !completedSteps.enrich}
                             >
                                 {completedSteps.query ? <PanoramaFishEyeIcon /> : <AdjustIcon />}
                             </IconButton>
-                            <Typography variant="caption" color="textSecondary">
-                                {isLoading ? "" : "Query"}
+                            <Typography variant="caption" color="textSecondary" align="center">
+                                {isLoading ? (
+                                    generationProgress 
+                                        ? `Querying (${generationProgress.current}/${generationProgress.total})`
+                                        : "..."
+                                ) : "Query"}
                             </Typography>
                             {isLoading && (
-                                <CircularProgress
-                                    size={24}
-                                    sx={{
-                                        position: "absolute",
-                                        top: "50%",
-                                        left: "50%",
-                                        marginTop: "-12px",
-                                        marginLeft: "-12px"
-                                    }}
-                                />
+                                <Box sx={{
+                                    position: "absolute",
+                                    top: "50%",
+                                    left: "50%",
+                                    transform: "translate(-50%, -100%)",
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                }}>
+                                    <CircularProgress
+                                        variant={generationProgress ? "determinate" : "indeterminate"}
+                                        value={generationProgress 
+                                            ? (generationProgress.current / generationProgress.total) * 100 
+                                            : undefined}
+                                        size={20}
+                                    />
+                                </Box>
                             )}
                         </Stack>
                     </Stack>
@@ -632,7 +662,7 @@ const App: React.FC = () => {
                                     margin="normal"
                                     sx={{ width: "150px" }} // Adjust width as needed
                                 />
-                                <Button
+                                {/* <Button
                                     variant="contained"
                                     onClick={handleQuerySubmit}
                                     disabled={isLoading || !localQuery.trim()}
@@ -647,7 +677,7 @@ const App: React.FC = () => {
                                     ) : (
                                         "Query"
                                     )}
-                                </Button>
+                                </Button> */}
                             </Stack>
                         </Box>
                     )}
@@ -786,7 +816,12 @@ const App: React.FC = () => {
                             }
                         }}
                     >
-
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="h6">Additional Information</Typography>
+                            <IconButton onClick={() => setIsRightPanelOpen(false)}>
+                                <CloseIcon />
+                            </IconButton>
+                        </Box>
                         <ArticlePanel
                             articles={getRelevantArticles(selectedNodeId)}
                             selectedNodeId={selectedNodeId}
