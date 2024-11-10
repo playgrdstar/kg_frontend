@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Box, Stack, Typography, TextField, Button, IconButton, Divider, CircularProgress, Drawer, Chip, Link } from "@mui/material";
+import React, { useEffect, useState, useMemo } from "react";
+import { Box, Stack, Typography, TextField, Button, IconButton, Divider, CircularProgress, Drawer, Chip, Link, Autocomplete } from "@mui/material";
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import AdjustIcon from '@mui/icons-material/Adjust';
 import GraphVisualization from "./components/GraphVisualization";
@@ -18,6 +18,7 @@ import ListItemText from '@mui/material/ListItemText';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 import Tooltip from "@mui/material/Tooltip";
+import lookup from "./data/lookup.json";
 
 type GenerationProgress = {
     current: number;
@@ -28,6 +29,23 @@ interface StreamingUpdate {
     nodes: Set<string>;
     timestamp: number;
 }
+
+interface Company {
+    symbol: string;
+    name: string;
+    sector: string;
+    subSector: string;
+    headQuarter: string;
+    dateFirstAdded: string | null;
+    cik: string;
+    founded: string;
+}
+
+type CompanyOption = {
+    symbol: string;
+    name: string;
+    sector: string;
+};
 
 const NodeDetails: React.FC<{ node: KGNode }> = ({ node }) => {
     return (
@@ -125,6 +143,14 @@ const App: React.FC = () => {
     const [topN, setTopN] = useState<number>(5); // State for top N
     const [numHops, setNumHops] = useState<number>(1); // State for number of hops
 
+    const companyOptions = useMemo(() => {
+        return lookup.sp500.map(company => ({
+            symbol: company.symbol,
+            name: company.name,
+            sector: company.sector
+        }));
+    }, []);
+
     const handleGenerateKG = async () => {
         if (!tickers.trim()) return;
         
@@ -154,21 +180,31 @@ const App: React.FC = () => {
             const MAX_RECONNECT_ATTEMPTS = 3;
 
             newEventSource.onopen = () => {
-                console.log("[SSE] Connection established");
+                console.log("[SSE] Connection opened, readyState:", newEventSource.readyState);
                 reconnectAttempts = 0;  // Reset reconnect attempts on successful connection
             };
 
             newEventSource.onmessage = (event) => {
+                console.log("[SSE] Raw message received:", event.data);
+                
                 try {
                     const data = JSON.parse(event.data);
-                    console.log("[SSE] Received message:", data);
+                    console.log("[SSE] Parsed message:", data);
                     
                     switch (data.type) {
                         case "connection":
                             console.log("[SSE] Connection confirmed");
                             break;
 
+                        case "progress":
+                            console.log("[SSE] Progress update:", data);
+                            if (data.progress) {
+                                setGenerationProgress(data.progress);
+                            }
+                            break;
+
                         case "kg_update":
+                            console.log("[SSE] Received KG update:", data);
                             if (data.data && Array.isArray(data.data.nodes)) {
                                 const currentKgId = data.kg_id;
                                 
@@ -232,20 +268,20 @@ const App: React.FC = () => {
                             setEventSource(null);
                             break;
 
-                        case "error":
-                            console.error("[SSE] Server error:", data.message);
-                            setIsLoading(false);
-                            newEventSource.close();
-                            setEventSource(null);
+                        default:
+                            console.log("[SSE] Unhandled message type:", data.type);
                             break;
                     }
                 } catch (error) {
-                    console.error("[SSE] Message parsing error:", error);
+                    console.error("[SSE] Message parsing error:", error, "Raw data:", event.data);
                 }
             };
 
             newEventSource.onerror = (error) => {
-                console.error("[SSE] Connection error:", error);
+                console.error("[SSE] Connection error details:", {
+                    readyState: newEventSource.readyState,
+                    error: error
+                });
                 
                 if (newEventSource.readyState === EventSource.CLOSED) {
                     if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
@@ -602,29 +638,73 @@ const App: React.FC = () => {
                         </Stack>
                     </Stack>
                     <Divider sx={{ my: 2}} />
-                    <Stack direction="row" spacing={1}>
-                    <TextField
-                        fullWidth
-                        label="Enter stock tickers (comma-separated)"
-                        value={tickers}
-                        onChange={(e) => setTickers(e.target.value)}
-                        margin="normal"
-                    />
-                    <TextField
-                        fullWidth
-                        label="Window"
-                        type="number"
-                        value={window}
-                        onChange={(e) => setWindow(Math.max(1, parseInt(e.target.value) || 1))}
-                        margin="normal"
-                    />
-                    <TextField
-                        fullWidth
-                        label="Limit"
-                        type="number"
-                        value={limit}
-                        onChange={(e) => setLimit(Math.max(1, parseInt(e.target.value) || 1))}
-                        margin="normal"
+                    <Stack direction="row" spacing={1} alignItems="center">
+                        <Autocomplete<CompanyOption, true>
+                            multiple
+                            fullWidth
+                            options={companyOptions}
+                            value={tickers.split(",")
+                                .filter(t => t.trim())
+                                .map(symbol => 
+                                    companyOptions.find(co => co.symbol === symbol.trim()) || {
+                                        symbol: symbol.trim(),
+                                        name: "",
+                                        sector: ""
+                                    }
+                                )}
+                            onChange={(_, newValue) => {
+                                setTickers(newValue.map(v => v.symbol).join(","));
+                            }}
+                            getOptionLabel={(option) => `${option.symbol} - ${option.name}`}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Enter stock tickers"
+                                    placeholder="Search by symbol or company name"
+                                    size="small"
+                                    margin="none"
+                                />
+                            )}
+                            renderTags={(value) =>
+                                value.map((option) => (
+                                    <Chip
+                                        key={option.symbol}
+                                        size="small"
+                                        label={option.symbol}
+                                    />
+                                ))
+                            }
+                            size="small"
+                            sx={{ 
+                                flexGrow: 1,
+                                '& .MuiOutlinedInput-root': {
+                                    height: '40px'
+                                }
+                            }}
+                        />
+                        <TextField
+                            label="Window"
+                            type="number"
+                            value={window}
+                            onChange={(e) => setWindow(Math.max(1, parseInt(e.target.value) || 1))}
+                            size="small"
+                            margin="none"
+                            sx={{ 
+                                width: "80px",
+                                minWidth: "80px"
+                            }}
+                        />
+                        <TextField
+                            label="Limit"
+                            type="number"
+                            value={limit}
+                            onChange={(e) => setLimit(Math.max(1, parseInt(e.target.value) || 1))}
+                            size="small"
+                            margin="none"
+                            sx={{ 
+                                width: "80px",
+                                minWidth: "80px"
+                            }}
                         />
                     </Stack>
 
