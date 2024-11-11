@@ -6,7 +6,7 @@ import axios from "axios";
 import { KnowledgeGraphResponse, QueryResult } from "../types/api.types";
 
 // The root is in proxy in package.json
-const API_BASE_URL = "/api";
+const API_BASE_URL = "https://playgrdstar.pythonanywhere.com/api";
 
 const api = axios.create({
     baseURL: API_BASE_URL,

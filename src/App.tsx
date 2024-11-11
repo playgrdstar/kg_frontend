@@ -171,7 +171,7 @@ const App: React.FC = () => {
                 limit: limit.toString()
             });
 
-            const apiUrl = `/api/generate?${params.toString()}`;
+            const apiUrl = `https://playgrdstar.pythonanywhere.com/api/generate?${params.toString()}`;
             console.log("[SSE] Connecting to:", apiUrl);
 
             // Create new EventSource without initial fetch check
