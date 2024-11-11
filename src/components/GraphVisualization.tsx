@@ -6,7 +6,8 @@ import {
     Slider, 
     Typography, 
     Stack,
-    IconButton
+    IconButton,
+    Paper
 } from "@mui/material";
 import { KnowledgeGraph, KGNode, KGEdge } from "../types/api.types";
 import { cosineSimilarity } from "../utils/math";
@@ -539,6 +540,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
                     height: "600px",
                     position: "relative"
                 }}>
+                    {completedSteps.enrich && <Legend />}
                     <IconButton
                         onClick={handleResetView}
                         sx={{
@@ -586,5 +588,42 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         );
     }
 };
+
+const Legend = () => (
+    <Paper
+        elevation={2}
+        sx={{
+            position: "absolute",
+            left: 16,
+            top: 16,
+            zIndex: 1,
+            padding: 1.5,
+            backgroundColor: "background.paper",
+        }}
+    >
+        <Typography variant="body2" fontWeight="bold" sx={{ mb: 1 }}>
+            Legend
+        </Typography>
+        <Stack spacing={1}>
+            {[
+                { color: "lightblue", label: "Selected or Connected Nodes" },
+                { color: "pink", label: "Similar Nodes (Network or Text)" },
+                { color: "orange", label: "Same Community" },
+            ].map(({ color, label }) => (
+                <Box key={color} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box
+                        sx={{
+                            width: 12,
+                            height: 12,
+                            backgroundColor: color,
+                            borderRadius: "50%"
+                        }}
+                    />
+                    <Typography variant="body2">{label}</Typography>
+                </Box>
+            ))}
+        </Stack>
+    </Paper>
+);
 
 export default GraphVisualization;
