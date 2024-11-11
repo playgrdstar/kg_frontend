@@ -519,7 +519,7 @@ const App: React.FC = () => {
                             </ListItemIcon>
                             <ListItemText 
                                 primary="Enrich Knowledge Graph"
-                                secondary="Enrich with semantic information and combine all knowledge graphs. Use side panel on right to see overall summary. After enrichment, each node is enriched with a network embedding, a text embedding, and a community. This step may take some time if there are many nodes in the knowledge graph."
+                                secondary="Enrich with semantic information and combine all knowledge graphs. After enrichment, each node is enriched with the following semantic information: i) a network embedding, ii) a text embedding, and iii) a community assignment. This step may take some time if there are many nodes in the knowledge graph. An overall summary of the enriched knowledge graph is also generated. Use side panel on right to see overall summary. The context nodes section at the bottom will display all the nodes. Hover over these chips to see the node type and summary."
                             />
                         </ListItem>
                         
@@ -529,7 +529,7 @@ const App: React.FC = () => {
                             </ListItemIcon>
                             <ListItemText 
                                 primary="Query Knowledge Graph"
-                                secondary="Query the combined knowledge graph to retrieve relevant information, and generate answer. Use side panel on right to see the answer to the query. Use knowledge graph visualisation to include the nodes to include in context. If no nodes are selected, all nodes are used. The context comes from the connected nodes (K-hop) and the top-N nodes based on the semantic similarity of the query to the network embeddings, text embeddings, and the communities of the graph."
+                                secondary="Query the combined knowledge graph to retrieve relevant information, and generate answer. Use knowledge graph visualisation to include the nodes to include in initial context. If no nodes are selected, all nodes are used as initial context. The final context comes from the connected nodes (K-hop) and the top-N nodes based on the semantic similarity of the query to the network embeddings, text embeddings, and the communities of the graph. Use side panel on right to see the answer to the query and evidence."
                             />
                         </ListItem>
                     </List>
