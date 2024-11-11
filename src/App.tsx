@@ -351,6 +351,7 @@ const App: React.FC = () => {
         setIsLoading(true);
         try {
             console.log("Querying KG with ID:", kgId);
+            console.log("Top N:", topN, "Num Hops:", numHops);
             const nodesToQuery = selectedNodes.size > 0 
                 ? Array.from(selectedNodes)
                 : kgData.nodes.map(node => node.id);
