@@ -47,6 +47,10 @@ type CompanyOption = {
     sector: string;
 };
 
+const MAX_TICKERS = 3;
+const MAX_WINDOW = 3;
+const MAX_ARTICLES = 3;
+
 const NodeDetails: React.FC<{ node: KGNode }> = ({ node }) => {
     return (
         <Box sx={{ mb: 1 }}>
@@ -657,7 +661,8 @@ const App: React.FC = () => {
                                     }
                                 )}
                             onChange={(_, newValue) => {
-                                setTickers(newValue.map(v => v.symbol).join(","));
+                                const limitedValue = newValue.slice(0, MAX_TICKERS);
+                                setTickers(limitedValue.map(v => v.symbol).join(","));
                             }}
                             getOptionLabel={(option) => `${option.symbol} - ${option.name}`}
                             renderInput={(params) => (
@@ -690,9 +695,15 @@ const App: React.FC = () => {
                             label="Window"
                             type="number"
                             value={window}
-                            onChange={(e) => setWindow(Math.max(1, parseInt(e.target.value) || 1))}
+                            onChange={(e) => setWindow(Math.max(1, Math.min(MAX_WINDOW, parseInt(e.target.value) || 1)))}
                             size="small"
                             margin="none"
+                            slotProps={{
+                                input: {
+                                    min: 1,
+                                    max: MAX_WINDOW
+                                }
+                            }}
                             sx={{ 
                                 width: "80px",
                                 minWidth: "80px"
@@ -702,9 +713,15 @@ const App: React.FC = () => {
                             label="Limit"
                             type="number"
                             value={limit}
-                            onChange={(e) => setLimit(Math.max(1, parseInt(e.target.value) || 1))}
+                            onChange={(e) => setLimit(Math.max(1, Math.min(MAX_ARTICLES, parseInt(e.target.value) || 1)))}
                             size="small"
                             margin="none"
+                            slotProps={{
+                                input: {
+                                    min: 1,
+                                    max: MAX_WINDOW
+                                }
+                            }}
                             sx={{ 
                                 width: "80px",
                                 minWidth: "80px"
