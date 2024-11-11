@@ -8,23 +8,28 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
-          node-version: '16'  # Specify the Node.js version
+          node-version: '18'  # Updated to a more recent LTS version
+          cache: 'npm'  # Add caching for better performance
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci  # More reliable than npm install for CI environments
 
       - name: Build the project
         run: npm run build
 
       - name: Deploy to GitHub Pages
-        run: npm run deploy
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: JamesIves/github-pages-deploy-action@v4  # Recommended action for GitHub Pages
+        with:
+          branch: gh-pages  # Specify the branch to deploy to
+          folder: build  # Adjust this to your build output directory
+          token: ${{ secrets.GITHUB_TOKEN }}  # Ensure you have the token for authentication
