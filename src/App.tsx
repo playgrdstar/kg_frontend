@@ -668,7 +668,7 @@ const App: React.FC = () => {
                             renderInput={(params) => (
                                 <TextField
                                     {...params}
-                                    label="Enter stock tickers"
+                                    label="Enter stock tickers (Max 3)"
                                     placeholder="Search by symbol or company name"
                                     size="small"
                                     margin="none"
@@ -692,7 +692,7 @@ const App: React.FC = () => {
                             }}
                         />
                         <TextField
-                            label="Window"
+                            label="Window (Max 3)"
                             type="number"
                             value={window}
                             onChange={(e) => setWindow(Math.max(1, Math.min(MAX_WINDOW, parseInt(e.target.value) || 1)))}
@@ -712,7 +712,7 @@ const App: React.FC = () => {
                             }}
                         />
                         <TextField
-                            label="Limit"
+                            label="Limit (Max 3)"
                             type="number"
                             value={limit}
                             onChange={(e) => setLimit(Math.max(1, Math.min(MAX_ARTICLES, parseInt(e.target.value) || 1)))}
