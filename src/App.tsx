@@ -501,7 +501,7 @@ const App: React.FC = () => {
                             </ListItemIcon>
                             <ListItemText 
                                 primary="Generate Knowledge Graph"
-                                secondary="Generate knowledge graphs from news articles. Use side panel to view news summaries and their associated knowledge graphs."
+                                secondary="Generate knowledge graphs from news articles. Use side panel on right to view news summaries and their associated knowledge graphs as they are fetched, processed, and generated."
                             />
                         </ListItem>
                         
@@ -511,7 +511,7 @@ const App: React.FC = () => {
                             </ListItemIcon>
                             <ListItemText 
                                 primary="Enrich Knowledge Graph"
-                                secondary="Enrich with semantic information and combine all knowledge graphs. Use side panel to see overall summary."
+                                secondary="Enrich with semantic information and combine all knowledge graphs. Use side panel on right to see overall summary. After enrichment, each node is enriched with a network embedding, a text embedding, and a community. This step may take some time if there are many nodes in the knowledge graph."
                             />
                         </ListItem>
                         
@@ -521,7 +521,7 @@ const App: React.FC = () => {
                             </ListItemIcon>
                             <ListItemText 
                                 primary="Query Knowledge Graph"
-                                secondary="Query the combined knowledge graph to retrieve relevant information, and generate answer."
+                                secondary="Query the combined knowledge graph to retrieve relevant information, and generate answer. Use side panel on right to see the answer to the query. Use knowledge graph visualisation to include the nodes to include in context. If no nodes are selected, all nodes are used. The context comes from the connected nodes (K-hop) and the top-N nodes based on the semantic similarity of the query to the network embeddings, text embeddings, and the communities of the graph."
                             />
                         </ListItem>
                     </List>
