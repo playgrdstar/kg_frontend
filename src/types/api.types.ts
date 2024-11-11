@@ -32,7 +32,7 @@ export interface KnowledgeGraph {
     articles: Article[];
     summary: string;
     updateId?: number;
-    kg_id?: string;
+    kg_id?: string | null;
 }
 
 export interface KnowledgeGraphResponse {

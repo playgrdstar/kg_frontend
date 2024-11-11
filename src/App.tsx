@@ -293,7 +293,7 @@ const App: React.FC = () => {
                         setCompletedSteps(prev => ({ ...prev, generate: true }));
                         if (kgData.kg_id) {
                             setKgId(kgData.kg_id);
-                            setKgIds(prev => [...prev, kgData.kg_id]);
+                            setKgIds(prev => [...prev, kgData.kg_id as string]);
                         }
                     }
                     
