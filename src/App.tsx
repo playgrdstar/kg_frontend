@@ -700,8 +700,10 @@ const App: React.FC = () => {
                             margin="none"
                             slotProps={{
                                 input: {
-                                    min: 1,
-                                    max: MAX_WINDOW
+                                    inputProps: {   
+                                        min: 1,
+                                        max: MAX_WINDOW
+                                    }
                                 }
                             }}
                             sx={{ 
@@ -718,8 +720,10 @@ const App: React.FC = () => {
                             margin="none"
                             slotProps={{
                                 input: {
-                                    min: 1,
-                                    max: MAX_WINDOW
+                                    inputProps: {
+                                        min: 1,
+                                        max: MAX_ARTICLES
+                                    }
                                 }
                             }}
                             sx={{ 
