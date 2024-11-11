@@ -48,7 +48,7 @@ type CompanyOption = {
 };
 
 const MAX_TICKERS = 3;
-const MAX_WINDOW = 3;
+const MAX_WINDOW = 5;
 const MAX_ARTICLES = 3;
 
 const NodeDetails: React.FC<{ node: KGNode }> = ({ node }) => {
@@ -692,7 +692,7 @@ const App: React.FC = () => {
                             }}
                         />
                         <TextField
-                            label="Window (Max 3)"
+                            label="Window"
                             type="number"
                             value={window}
                             onChange={(e) => setWindow(Math.max(1, Math.min(MAX_WINDOW, parseInt(e.target.value) || 1)))}
@@ -712,7 +712,7 @@ const App: React.FC = () => {
                             }}
                         />
                         <TextField
-                            label="Limit (Max 3)"
+                            label="Limit"
                             type="number"
                             value={limit}
                             onChange={(e) => setLimit(Math.max(1, Math.min(MAX_ARTICLES, parseInt(e.target.value) || 1)))}
