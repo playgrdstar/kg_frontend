@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/kg_frontend/static/css/main.01033243.css",
-    "main.js": "/kg_frontend/static/js/main.62e5b439.js",
+    "main.js": "/kg_frontend/static/js/main.c86d2aff.js",
     "static/js/453.ed738348.chunk.js": "/kg_frontend/static/js/453.ed738348.chunk.js",
     "index.html": "/kg_frontend/index.html",
     "main.01033243.css.map": "/kg_frontend/static/css/main.01033243.css.map",
-    "main.62e5b439.js.map": "/kg_frontend/static/js/main.62e5b439.js.map",
+    "main.c86d2aff.js.map": "/kg_frontend/static/js/main.c86d2aff.js.map",
     "453.ed738348.chunk.js.map": "/kg_frontend/static/js/453.ed738348.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.01033243.css",
-    "static/js/main.62e5b439.js"
+    "static/js/main.c86d2aff.js"
   ]
 }
