@@ -257,10 +257,10 @@ const App: React.FC = () => {
 
                         case "complete":
                             console.log("[SSE] Generation complete");
-                            if (kgData && kgData.kg_id) {
-                                setKgId(kgData.kg_id);
-                                setKgIds(prev => [...prev, kgData.kg_id]);
-                                console.log("[App] Set KG ID:", kgData.kg_id);
+                            if (data.data.kg_id) {
+                                setKgId(data.data.kg_id);
+                                setKgIds(prev => [...prev, data.data.kg_id]);
+                                console.log("[App] Set KG ID:", data.data.kg_id);
                             }
                             setCompletedSteps(prev => ({ ...prev, generate: true }));
                             setGenerationProgress(null);
