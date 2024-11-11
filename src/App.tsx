@@ -238,7 +238,8 @@ const App: React.FC = () => {
                                         edges: [...(prevKG?.edges || []), ...data.data.edges],
                                         articles: [...(prevKG?.articles || []), data.data.article],
                                         summary: prevKG?.summary || "",
-                                        updateId: Date.now()
+                                        updateId: Date.now(),
+                                        kg_id: data.kg_id
                                     };
                                     
                                     console.log("[App] Setting new KG state:", {
@@ -256,10 +257,10 @@ const App: React.FC = () => {
 
                         case "complete":
                             console.log("[SSE] Generation complete");
-                            if (data.data.kg_id) {
-                                setKgId(data.data.kg_id);
-                                setKgIds(prev => [...prev, data.data.kg_id]);
-                                console.log("[App] Set KG ID:", data.data.kg_id);
+                            if (kgData && kgData.kg_id) {
+                                setKgId(kgData.kg_id);
+                                setKgIds(prev => [...prev, kgData.kg_id]);
+                                console.log("[App] Set KG ID:", kgData.kg_id);
                             }
                             setCompletedSteps(prev => ({ ...prev, generate: true }));
                             setGenerationProgress(null);
@@ -284,21 +285,23 @@ const App: React.FC = () => {
                 });
                 
                 if (newEventSource.readyState === EventSource.CLOSED) {
-                    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-                        reconnectAttempts++;
-                        console.log(`[SSE] Attempting to reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
-                        setTimeout(() => {
-                            newEventSource.close();
-                            setEventSource(null);
-                            handleGenerateKG();
-                        }, 3000);
-                    } else {
-                        console.error("[SSE] Max reconnection attempts reached");
-                        setIsLoading(false);
-                        setGenerationProgress(null);
-                        newEventSource.close();
-                        setEventSource(null);
+                    console.log("[SSE] Connection closed - completing current progress");
+                    
+                    // Gracefully complete the current request
+                    if (generationProgress && kgData) {  // Check if kgData exists
+                        // Force complete with current progress
+                        setCompletedSteps(prev => ({ ...prev, generate: true }));
+                        if (kgData.kg_id) {
+                            setKgId(kgData.kg_id);
+                            setKgIds(prev => [...prev, kgData.kg_id]);
+                        }
                     }
+                    
+                    // Clean up
+                    setIsLoading(false);
+                    setGenerationProgress(null);
+                    newEventSource.close();
+                    setEventSource(null);
                 }
             };
 
